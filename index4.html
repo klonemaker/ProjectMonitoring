@@ -178,4 +178,324 @@
             
             <!-- Filter 2: Sanction Period -->
             <div class="filter-section">
-                <div
+                <div class="selector-title">2. Select Sanction Period</div>
+                <div id="periodContainer" class="filter-group"></div>
+            </div>
+            
+            <!-- Filter 3: Railway Zone -->
+            <div class="filter-section">
+                <div class="selector-title">3. Select Railway Zone</div>
+                <div id="zoneContainer" class="filter-group"></div>
+            </div>
+
+            <!-- Filter 4: Search Bar -->
+            <div class="filter-section">
+                <div class="selector-title">4. Search Project Name</div>
+                <div class="search-container">
+                    <input type="text" id="searchBar" placeholder="Search projects..." onkeyup="applyFilters()" />
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table id="reportTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">Period</th>
+                            <th style="width: 7%;">Zone</th>
+                            <th style="width: 38%;">Project Name (Click for Details)</th>
+                            <th style="width: 25%;">Delay Category</th>
+                            <th style="width: 10%;">Sanctioned</th>
+                            <th style="width: 10%;">Cost (Cr)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Background -->
+    <div id="projectModal" class="modal" onclick="closeModalOutside(event)">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+            <h3 class="modal-title" id="modalTitle">Project Name</h3>
+            <div id="modalBody">
+                <!-- Details injected here via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let globalData = [];
+        let currentViewData = [];
+        let currentZone = "All";
+        let currentPeriod = "All";
+        let currentReason = "All";
+        
+        // Exact name of the file in the repository
+        const FILE_NAME = 'Project_Data.xlsx';
+
+        // Display the manual upload button if auto-fetch hangs for 3 seconds
+        let fallbackTimer = setTimeout(() => {
+            if (document.getElementById('loadingOverlay').style.display !== 'none') {
+                document.getElementById('mainSpinner').style.display = 'none';
+                document.getElementById('fallbackUpload').style.display = 'inline-block';
+                document.getElementById('loadingText').style.display = 'none';
+            }
+        }, 3000);
+
+        // Core extraction logic reused for both auto-fetch and manual upload
+        function processExcelData(uint8Array) {
+            
+            // Firewall / Network blocker check
+            if (typeof XLSX === 'undefined') {
+                document.getElementById('mainSpinner').style.display = 'none';
+                document.getElementById('loadingText').innerHTML = `<span style="color:var(--warning)">Error: Excel reading library was blocked by your network firewall.</span>`;
+                return;
+            }
+
+            const workbook = XLSX.read(uint8Array, {type: 'array'});
+            let allCombinedData = [];
+
+            workbook.SheetNames.forEach(sheetName => {
+                let period = "";
+                const lowerName = sheetName.toLowerCase();
+                
+                if(lowerName.includes("before 2014")) period = "Before 2014";
+                else if(lowerName.includes("14-19")) period = "2014-19";
+                else if(lowerName.includes("19-24")) period = "2019-24";
+                else return; 
+
+                const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {defval: ""});
+                
+                rawData.forEach(row => {
+                    const getVal = (searchStr) => {
+                        // Cast keys to String safely before executing regex replacements
+                        const key = Object.keys(row).find(k => String(k).replace(/\s+/g, ' ').toLowerCase().includes(searchStr.toLowerCase()));
+                        return key ? (row[key] || "").toString().trim() : "";
+                    };
+
+                    const reasonCategory = getVal("TIME OVERRUN REASON");
+                    
+                    if(reasonCategory && reasonCategory !== "") {
+                        allCombinedData.push({
+                            'Period': period,
+                            'Zone': getVal("Rly") || getVal("Zone"),
+                            'Project Name': getVal("Name of Project"),
+                            'Category': reasonCategory,
+                            'Detailed Reason': getVal("Reasons for Time overrun") || "No detailed reason provided.",
+                            'Sanctioned Year': getVal("Sanctioned Year"),
+                            'Length (Km)': getVal("Length of project"),
+                            'Original Cost': getVal("Original Sanctioned Cost"),
+                            'Anticipated Cost': getVal("Anticipated Cost")
+                        });
+                    }
+                });
+            });
+
+            if (allCombinedData.length === 0) {
+                throw new Error("No 'TIME OVERRUN REASON' projects found.");
+            }
+
+            globalData = allCombinedData;
+            
+            // Success! Hide loading overlays
+            clearTimeout(fallbackTimer);
+            document.getElementById('loadingOverlay').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            
+            renderSelectors();
+            applyFilters();
+        }
+
+        // Auto-fetch data on load (with cache buster)
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Add timestamp to force Github to ignore cache
+                const response = await fetch(FILE_NAME + '?v=' + new Date().getTime());
+                if (!response.ok) {
+                    throw new Error(`Status: ${response.status}`);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                processExcelData(new Uint8Array(arrayBuffer));
+            } catch (error) {
+                console.error(error);
+                document.getElementById('mainSpinner').style.display = 'none';
+                document.getElementById('loadingText').style.display = 'none';
+                document.getElementById('fallbackUpload').style.display = 'inline-block';
+                document.getElementById('fallbackMsg').innerHTML = `<b>Auto-fetch failed.</b> (Ensure file is exactly named <i>${FILE_NAME}</i>). Please upload manually:`;
+            }
+        });
+
+        // Manual Upload Fallback
+        document.getElementById('manualUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('fallbackMsg').textContent = 'Processing uploaded file...';
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    processExcelData(new Uint8Array(event.target.result));
+                } catch (error) {
+                    document.getElementById('fallbackMsg').innerHTML = `<span style="color:var(--warning)">Invalid File Format. Please ensure it is the PMO Excel file.</span>`;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function renderSelectors() {
+            const zones = new Set();
+            const periods = new Set();
+            const reasons = new Set();
+
+            globalData.forEach(row => {
+                if (row['Zone']) zones.add(row['Zone']);
+                if (row['Period']) periods.add(row['Period']);
+                if (row['Category']) reasons.add(row['Category']);
+            });
+
+            // 1. Render Reason Filters
+            let rHtml = `<div class="filter-btn active" onclick="setFilter('reason', 'All', this)">All Categories</div>`;
+            Array.from(reasons).sort().forEach(r => {
+                rHtml += `<div class="filter-btn" onclick="setFilter('reason', '${r.replace(/'/g, "\\'")}', this)">${r}</div>`;
+            });
+            document.getElementById('reasonContainer').innerHTML = rHtml;
+            
+            // 2. Render Period Filters
+            let pHtml = `<div class="filter-btn active" onclick="setFilter('period', 'All', this)">All Periods</div>`;
+            const sortedPeriods = Array.from(periods).sort((a,b) => a.localeCompare(b));
+            sortedPeriods.forEach(p => {
+                pHtml += `<div class="filter-btn" onclick="setFilter('period', '${p.replace(/'/g, "\\'")}', this)">${p}</div>`;
+            });
+            document.getElementById('periodContainer').innerHTML = pHtml;
+
+            // 3. Render Zone Filters
+            let zHtml = `<div class="filter-btn active" onclick="setFilter('zone', 'All', this)">All Zones</div>`;
+            Array.from(zones).sort().forEach(z => {
+                zHtml += `<div class="filter-btn" onclick="setFilter('zone', '${z.replace(/'/g, "\\'")}', this)">${z}</div>`;
+            });
+            document.getElementById('zoneContainer').innerHTML = zHtml;
+        }
+
+        function setFilter(type, val, element) {
+            if (type === 'zone') {
+                currentZone = val;
+                document.querySelectorAll('#zoneContainer .filter-btn').forEach(el => el.classList.remove('active'));
+            } else if (type === 'period') {
+                currentPeriod = val;
+                document.querySelectorAll('#periodContainer .filter-btn').forEach(el => el.classList.remove('active'));
+            } else if (type === 'reason') {
+                currentReason = val;
+                document.querySelectorAll('#reasonContainer .filter-btn').forEach(el => el.classList.remove('active'));
+            }
+            element.classList.add('active');
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const searchInput = document.getElementById('searchBar').value.trim();
+            const searchText = searchInput.toLowerCase();
+
+            currentViewData = globalData.filter(row => {
+                const projName = (row['Project Name'] || "").toLowerCase();
+                const matchSearch = searchText === "" || projName.includes(searchText);
+                
+                const matchZone = currentZone === "All" || row['Zone'] === currentZone;
+                const matchPeriod = currentPeriod === "All" || row['Period'] === currentPeriod;
+                const matchReason = currentReason === "All" || row['Category'] === currentReason;
+
+                return matchSearch && matchZone && matchPeriod && matchReason;
+            });
+
+            renderTable(currentViewData, searchInput);
+        }
+
+        function renderTable(data, searchInput) {
+            const tbody = document.getElementById('tableBody');
+            document.getElementById('recordCount').textContent = `Showing ${data.length} projects`;
+            
+            tbody.innerHTML = "";
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">No projects found matching the criteria.</td></tr>';
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+
+            data.forEach((row, idx) => {
+                const tr = document.createElement('tr');
+                let projHtml = row['Project Name'];
+                
+                if (searchInput) {
+                    const escapedSearchText = searchInput.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`(${escapedSearchText})`, "gi");
+                    projHtml = projHtml.replace(regex, '<mark>$1</mark>');
+                }
+
+                tr.innerHTML = `
+                    <td><span class="badge badge-period">${row['Period']}</span></td>
+                    <td class="badge-zone">${row['Zone']}</td>
+                    <td><a class="project-link" onclick="openModal(${idx})">${projHtml}</a></td>
+                    <td class="badge-reason">${row['Category']}</td>
+                    <td>${row['Sanctioned Year'] || '-'}</td>
+                    <td style="font-weight: 500;">${row['Original Cost'] ? '₹' + row['Original Cost'] : '-'}</td>
+                `;
+                fragment.appendChild(tr);
+            });
+            
+            tbody.appendChild(fragment);
+        }
+
+        // Modal Functions
+        function openModal(idx) {
+            const row = currentViewData[idx];
+            document.getElementById('modalTitle').textContent = row['Project Name'];
+            
+            const detailsHtml = `
+                <div class="modal-grid">
+                    <div class="modal-data-group">
+                        <span class="modal-label">Zone</span>
+                        <span class="modal-value" style="color: var(--accent);">${row['Zone']}</span>
+                    </div>
+                    <div class="modal-data-group">
+                        <span class="modal-label">Sanction Period</span>
+                        <span class="modal-value">${row['Period']}</span>
+                    </div>
+                    <div class="modal-data-group">
+                        <span class="modal-label">Sanctioned Year</span>
+                        <span class="modal-value">${row['Sanctioned Year'] || 'N/A'}</span>
+                    </div>
+                    <div class="modal-data-group">
+                        <span class="modal-label">Project Length</span>
+                        <span class="modal-value">${row['Length (Km)'] ? row['Length (Km)'] + ' Km' : 'N/A'}</span>
+                    </div>
+                    <div class="modal-data-group">
+                        <span class="modal-label">Original Cost</span>
+                        <span class="modal-value">${row['Original Cost'] ? '₹ ' + row['Original Cost'] + ' Cr' : 'N/A'}</span>
+                    </div>
+                    <div class="modal-data-group">
+                        <span class="modal-label">Anticipated Cost</span>
+                        <span class="modal-value">${row['Anticipated Cost'] ? '₹ ' + row['Anticipated Cost'] + ' Cr' : 'N/A'}</span>
+                    </div>
+                </div>
+                
+                <div class="modal-reason-box">
+                    <div class="modal-reason-title">Delay Category: ${row['Category']}</div>
+                    <div class="modal-label" style="margin-bottom: 8px;">Detailed Reasons for Time Overrun:</div>
+                    <div class="modal-long-text">${row['Detailed Reason']}</div>
+                </div>
+            `;
+            
+            document.getElementById('modalBody').innerHTML = detailsHtml;
+            document.getElementById('projectModal').style.display = 'block';
+        }
+
+        function closeModal() { document.getElementById('projectModal').style.display = 'none'; }
+        function closeModalOutside(event) {
+            if (event.target === document.getElementById('projectModal')) closeModal();
+        }
+    </script>
+</body>
+</html>
