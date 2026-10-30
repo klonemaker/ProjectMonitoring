@@ -6,6 +6,7 @@
     <title>Executive Project Delays Dashboard</title>
     <!-- Include SheetJS for Excel parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Include Inter font for a professional look -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -54,7 +55,7 @@
         /* Loading Screen */
         #loadingOverlay {
             text-align: center;
-            padding: 60px 20px;
+            padding: 80px 20px;
             font-size: 16px;
             color: var(--accent);
             font-weight: 600;
@@ -144,7 +145,7 @@
         
         <div id="loadingOverlay">
             <div class="spinner" id="mainSpinner"></div>
-            <div id="loadingText">Fetching project data from repository (Project_Delay.xlsx)...</div>
+            <div id="loadingText">Fetching project data from repository...</div>
         </div>
 
         <div id="dashboard">
@@ -183,11 +184,12 @@
                 <table id="reportTable">
                     <thead>
                         <tr>
-                            <th style="width: 12%;">Period</th>
+                            <th style="width: 10%;">Period</th>
                             <th style="width: 8%;">Zone</th>
-                            <th style="width: 40%;">Project Name (Click for Details)</th>
+                            <th style="width: 32%;">Project Name (Click for Details)</th>
                             <th style="width: 25%;">Delay Categories</th>
-                            <th style="width: 15%;">Sanctioned</th>
+                            <th style="width: 12%;">Sanctioned</th>
+                            <th style="width: 13%;">Cost (Cr)</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody"></tbody>
@@ -214,9 +216,10 @@
         let currentPeriod = "All";
         let currentReason = "All";
         
-        // Ensure this perfectly matches the uploaded file in Github
-        const FILE_NAME = 'Project_Delay1.xlsx';
+        // Exact name of the file in the GitHub repository
+        const FILE_NAME = 'Project_Delay.xlsx';
 
+        // Pre-defined exact 5 delay categories
         const DELAY_CATEGORIES = [
             "Forest Clearance & Wildlife",
             "Land Acquisition",
@@ -225,20 +228,22 @@
             "Utility Shifting"
         ];
 
+        // Auto-fetch data on load
         window.addEventListener('DOMContentLoaded', async () => {
             try {
-                // Add timestamp to force Github to ignore cache
+                // Add timestamp to bypass browser caching
                 const response = await fetch(FILE_NAME + '?v=' + new Date().getTime());
                 if (!response.ok) {
-                    throw new Error(`Status: ${response.status}`);
+                    throw new Error(`Could not find ${FILE_NAME} (Status: ${response.status})`);
                 }
                 const arrayBuffer = await response.arrayBuffer();
                 
                 if (typeof XLSX === 'undefined') {
-                    throw new Error("Excel reading library blocked by network.");
+                    throw new Error("Excel reading library is blocked by your network.");
                 }
 
-                const workbook = XLSX.read(new Uint8Array(arrayBuffer), {type: 'array'});
+                const data = new Uint8Array(arrayBuffer);
+                const workbook = XLSX.read(data, {type: 'array'});
                 let allCombinedData = [];
 
                 workbook.SheetNames.forEach(sheetName => {
@@ -260,7 +265,7 @@
 
                         let categories = [];
                         
-                        // Extracting actual True/False or Values from specific requirement columns
+                        // Check columns for multi-category matching
                         if (getVal("forest clearance") || getVal("wildlife")) categories.push(DELAY_CATEGORIES[0]);
                         if (getVal("land acquisition")) categories.push(DELAY_CATEGORIES[1]);
                         if (getVal("phase wise")) categories.push(DELAY_CATEGORIES[2]);
@@ -289,7 +294,7 @@
 
                 globalData = allCombinedData;
                 
-                // Success! Hide loading overlays
+                // Hide loading overlays and show dashboard
                 document.getElementById('loadingOverlay').style.display = 'none';
                 document.getElementById('dashboard').style.display = 'block';
                 
@@ -299,7 +304,12 @@
             } catch (error) {
                 console.error(error);
                 document.getElementById('mainSpinner').style.display = 'none';
-                document.getElementById('loadingText').innerHTML = `<span style="color:var(--warning)">Error loading data.</span><br><br><span style="font-size:14px; font-weight:normal;">Ensure the Excel file is named exactly <b>${FILE_NAME}</b> and uploaded to the repository. Note: GitHub is case-sensitive.</span>`;
+                document.getElementById('loadingText').innerHTML = 
+                    `<span style="color:var(--warning)"><b>Error loading data.</b></span><br><br>
+                     <span style="font-size:14px; font-weight:normal; color:var(--text-muted);">
+                     Ensure your Excel file is uploaded to GitHub and named exactly:<br><b>${FILE_NAME}</b>
+                     <br><br>Technical details: ${error.message}
+                     </span>`;
             }
         });
 
@@ -377,7 +387,7 @@
             tbody.innerHTML = "";
 
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">No projects found matching the criteria.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">No projects found matching the criteria.</td></tr>';
                 return;
             }
 
@@ -402,6 +412,7 @@
                     <td><a class="project-link" onclick="openModal(${idx})">${projHtml}</a></td>
                     <td>${catHtml}</td>
                     <td>${row['Sanctioned Year'] || '-'}</td>
+                    <td style="font-weight: 500;">${row['Original Cost'] ? '₹' + row['Original Cost'] : '-'}</td>
                 `;
                 fragment.appendChild(tr);
             });
