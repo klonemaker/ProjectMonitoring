@@ -21,6 +21,7 @@
             --border-color: #e2e8f0; 
             --success: #16a34a; 
             --warning: #ea580c; 
+            --danger: #dc2626;
         }
 
         body { 
@@ -52,23 +53,10 @@
         h2 { margin: 0; color: var(--primary); font-size: 24px; font-weight: 700; }
         .stats { font-size: 14px; font-weight: 600; color: var(--text-muted); }
 
-        /* Loading Screen */
-        #loadingOverlay {
-            text-align: center;
-            padding: 80px 20px;
-            font-size: 16px;
-            color: var(--accent);
-            font-weight: 600;
-        }
-        .spinner {
-            border: 4px solid rgba(0,0,0,0.1);
-            width: 40px; height: 40px;
-            border-radius: 50%;
-            border-left-color: var(--accent);
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px auto;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Upload Section */
+        .upload-section { background: #eef2f5; padding: 20px; border-radius: 8px; border: 1px dashed #d1d8dd; margin-bottom: 25px; display: flex; align-items: center; gap: 20px; }
+        input[type="file"] { padding: 10px; font-size: 14px; border: 1px solid var(--border-color); border-radius: 6px; outline: none; background: white; cursor: pointer; transition: border-color 0.3s;}
+        input[type="file"]:hover { border-color: var(--accent); }
         
         /* Filter Sections */
         .filter-section { margin-bottom: 25px; }
@@ -117,25 +105,62 @@
         /* Badges */
         .badge-period { background-color: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; display: inline-block; color: var(--text-main); border: 1px solid var(--border-color); }
         .badge-zone { color: var(--accent); font-weight: 700; }
-        .category-tag { background-color: #fff7ed; border: 1px solid #fed7aa; color: #c2410c; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-block; margin: 2px 2px 2px 0;}
+        .category-tag { background-color: #fff7ed; border: 1px solid #fed7aa; color: #c2410c; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; display: inline-block; margin: 2px 4px 2px 0;}
 
-        /* Modal Styles */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
-        .modal-content { background-color: #fff; margin: 5% auto; padding: 30px; border-radius: 12px; width: 90%; max-width: 650px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); position: relative; animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes modalFadeIn { from {opacity: 0; transform: translateY(-20px) scale(0.95);} to {opacity: 1; transform: translateY(0) scale(1);} }
-        .close-btn { position: absolute; right: 20px; top: 20px; font-size: 24px; color: var(--text-muted); cursor: pointer; background: none; border: none; padding: 5px; line-height: 1; border-radius: 4px;}
+        /* Modal Styles - Enhanced for Readability */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); }
+        .modal-content { 
+            background-color: #fff; 
+            margin: 4vh auto; 
+            border-radius: 12px; 
+            width: 90%; 
+            max-width: 900px; 
+            max-height: 90vh; /* Limits height to viewport */
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); 
+            position: relative; 
+            animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+        }
+        
+        @keyframes modalFadeIn { from {opacity: 0; transform: translateY(-20px) scale(0.98);} to {opacity: 1; transform: translateY(0) scale(1);} }
+        
+        .modal-header-fixed {
+            padding: 30px 35px 20px 35px;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .close-btn { position: absolute; right: 25px; top: 25px; font-size: 28px; color: var(--text-muted); cursor: pointer; background: none; border: none; padding: 5px; line-height: 1; border-radius: 4px;}
         .close-btn:hover { color: var(--primary); background-color: #f1f5f9;}
-        .modal-title { font-size: 20px; font-weight: 700; color: var(--primary); margin: 0 0 20px 0; padding-right: 30px; line-height: 1.3; }
         
-        .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);}
-        .modal-data-group { display: flex; flex-direction: column; gap: 4px; }
-        .modal-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
-        .modal-value { font-size: 14px; font-weight: 600; color: var(--primary); }
+        .modal-title { font-size: 24px; font-weight: 700; color: var(--primary); margin: 0; padding-right: 40px; line-height: 1.3; }
         
-        .modal-reason-box { margin-top: 20px; }
-        .modal-reason-title { font-size: 14px; font-weight: 700; color: var(--warning); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-        .modal-reason-title::before { content: "⚠️"; }
-        .modal-long-text { background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; white-space: pre-wrap; font-size: 13px; color: #475569; line-height: 1.6; max-height: 300px; overflow-y: auto;}
+        #modalBody {
+            padding: 25px 35px 35px 35px;
+            overflow-y: auto; /* Scrollable body */
+        }
+
+        .modal-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 30px; background: #f8fafc; padding: 25px; border-radius: 8px; border: 1px solid var(--border-color);}
+        .modal-data-group { display: flex; flex-direction: column; gap: 6px; }
+        .modal-label { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
+        .modal-value { font-size: 16px; font-weight: 600; color: var(--primary); }
+        
+        .modal-section-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .modal-long-text { 
+            background: #f8fafc; 
+            padding: 20px 25px; 
+            border-radius: 8px; 
+            border: 1px solid var(--border-color); 
+            white-space: pre-wrap; 
+            font-size: 15px; 
+            color: var(--text-main); 
+            line-height: 1.6; 
+            margin-bottom: 30px;
+        }
+        
+        .time-border { border-left: 4px solid var(--warning); }
+        .cost-border { border-left: 4px solid var(--danger); }
 
         #dashboard { display: none; }
     </style>
@@ -143,17 +168,21 @@
 <body>
     <div class="container">
         
-        <div id="loadingOverlay">
-            <div class="spinner" id="mainSpinner"></div>
-            <div id="loadingText">Fetching project data from repository...</div>
+        <div class="header">
+            <h2>Project Delays Dashboard</h2>
+            <div class="stats" id="recordCount">Projects found: 0</div>
+        </div>
+
+        <div class="upload-section" id="uploadSection">
+            <div>
+                <label for="fileUpload" style="font-weight: bold; display: block; margin-bottom: 8px; color: var(--primary);">Upload PMO Project Excel File (.xlsx):</label>
+                <input type="file" id="fileUpload" accept=".xlsx, .xls" />
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">Upload the file to automatically merge sheets and extract overrun data.</p>
+            </div>
+            <div id="loadingStatus" style="font-weight: bold; color: var(--warning);"></div>
         </div>
 
         <div id="dashboard">
-            <div class="header">
-                <h2>Project Delays Dashboard</h2>
-                <div class="stats" id="recordCount">Projects found: 0</div>
-            </div>
-
             <!-- Filter 1: Overrun Category -->
             <div class="filter-section">
                 <div class="selector-title">1. Time Overrun Category</div>
@@ -201,8 +230,10 @@
     <!-- Modal Background -->
     <div id="projectModal" class="modal" onclick="closeModalOutside(event)">
         <div class="modal-content">
-            <button class="close-btn" onclick="closeModal()">&times;</button>
-            <h3 class="modal-title" id="modalTitle">Project Name</h3>
+            <div class="modal-header-fixed">
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+                <h3 class="modal-title" id="modalTitle">Project Name</h3>
+            </div>
             <div id="modalBody">
                 <!-- Details injected here via JS -->
             </div>
@@ -215,11 +246,7 @@
         let currentZone = "All";
         let currentPeriod = "All";
         let currentReason = "All";
-        
-        // Exact name of the file in the GitHub repository
-        const FILE_NAME = 'Project_Data2.xlsx';
 
-        // Pre-defined exact 5 delay categories
         const DELAY_CATEGORIES = [
             "Forest Clearance & Wildlife",
             "Land Acquisition",
@@ -228,89 +255,86 @@
             "Utility Shifting"
         ];
 
-        // Auto-fetch data on load
-        window.addEventListener('DOMContentLoaded', async () => {
-            try {
-                // Add timestamp to bypass browser caching
-                const response = await fetch(FILE_NAME + '?v=' + new Date().getTime());
-                if (!response.ok) {
-                    throw new Error(`Could not find ${FILE_NAME} (Status: ${response.status})`);
-                }
-                const arrayBuffer = await response.arrayBuffer();
-                
-                if (typeof XLSX === 'undefined') {
-                    throw new Error("Excel reading library is blocked by your network.");
-                }
+        document.getElementById('fileUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
 
-                const data = new Uint8Array(arrayBuffer);
-                const workbook = XLSX.read(data, {type: 'array'});
-                let allCombinedData = [];
+            document.getElementById('loadingStatus').textContent = 'Processing file...';
 
-                workbook.SheetNames.forEach(sheetName => {
-                    let period = "";
-                    const lowerName = sheetName.toLowerCase();
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = new Uint8Array(event.target.result);
                     
-                    if(lowerName.includes("before 2014")) period = "Before 2014";
-                    else if(lowerName.includes("14-19")) period = "2014-19";
-                    else if(lowerName.includes("19-24")) period = "2019-24";
-                    else return; 
+                    if (typeof XLSX === 'undefined') {
+                        document.getElementById('loadingStatus').innerHTML = `Error: Excel reading library is blocked.`;
+                        return;
+                    }
 
-                    const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {defval: "", raw: false});
-                    
-                    rawData.forEach(row => {
-                        const getVal = (searchStr) => {
-                            const key = Object.keys(row).find(k => String(k).replace(/\s+/g, ' ').toLowerCase().includes(searchStr.toLowerCase()));
-                            return key ? (row[key] || "").toString().trim() : "";
-                        };
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    let allCombinedData = [];
 
-                        let categories = [];
+                    workbook.SheetNames.forEach(sheetName => {
+                        let period = "";
+                        const lowerName = sheetName.toLowerCase();
                         
-                        // Check columns for multi-category matching
-                        if (getVal("forest clearance") || getVal("wildlife")) categories.push(DELAY_CATEGORIES[0]);
-                        if (getVal("land acquisition")) categories.push(DELAY_CATEGORIES[1]);
-                        if (getVal("phase wise")) categories.push(DELAY_CATEGORIES[2]);
-                        if (getVal("law & order") || getVal("law and order")) categories.push(DELAY_CATEGORIES[3]);
-                        if (getVal("utility shifting")) categories.push(DELAY_CATEGORIES[4]);
+                        if(lowerName.includes("before 2014")) period = "Before 2014";
+                        else if(lowerName.includes("14-19")) period = "2014-19";
+                        else if(lowerName.includes("19-24")) period = "2019-24";
+                        else return; 
 
-                        if(categories.length > 0) {
-                            allCombinedData.push({
-                                'Period': period,
-                                'Zone': getVal("Rly") || getVal("Zone"),
-                                'Project Name': getVal("Name of Project"),
-                                'Categories': categories,
-                                'Detailed Reason': getVal("Reasons for Time overrun") || "No detailed reason provided.",
-                                'Sanctioned Year': getVal("Sanctioned Year"),
-                                'Length (Km)': getVal("Length of project"),
-                                'Original Cost': getVal("Original Sanctioned Cost"),
-                                'Anticipated Cost': getVal("Anticipated Cost")
-                            });
-                        }
+                        const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {defval: "", raw: false});
+                        
+                        rawData.forEach(row => {
+                            const getVal = (searchStr) => {
+                                const key = Object.keys(row).find(k => String(k).replace(/\s+/g, ' ').toLowerCase().includes(searchStr.toLowerCase()));
+                                return key ? (row[key] || "").toString().trim() : "";
+                            };
+
+                            let categories = [];
+                            
+                            if (getVal("forest clearance") || getVal("wildlife")) categories.push(DELAY_CATEGORIES[0]);
+                            if (getVal("land acquisition")) categories.push(DELAY_CATEGORIES[1]);
+                            if (getVal("phase wise")) categories.push(DELAY_CATEGORIES[2]);
+                            if (getVal("law & order") || getVal("law and order")) categories.push(DELAY_CATEGORIES[3]);
+                            if (getVal("utility shifting")) categories.push(DELAY_CATEGORIES[4]);
+
+                            if(categories.length > 0) {
+                                allCombinedData.push({
+                                    'Period': period,
+                                    'Zone': getVal("Rly") || getVal("Zone"),
+                                    'Project Name': getVal("Name of Project"),
+                                    'Categories': categories,
+                                    'Time Reason': getVal("Reasons for Time overrun") || "No detailed time overrun reason provided.",
+                                    'Cost Reason': getVal("Reasons for Cost Over run") || "No detailed cost overrun reason provided.",
+                                    'Sanctioned Year': getVal("Sanctioned Year"),
+                                    'Length (Km)': getVal("Length of project"),
+                                    'Original Cost': getVal("Original Sanctioned Cost"),
+                                    'Anticipated Cost': getVal("Anticipated Cost")
+                                });
+                            }
+                        });
                     });
-                });
 
-                if (allCombinedData.length === 0) {
-                    throw new Error("No projects found with valid delay categories.");
+                    if (allCombinedData.length === 0) {
+                        document.getElementById('loadingStatus').textContent = "No valid projects found.";
+                        return;
+                    }
+
+                    globalData = allCombinedData;
+                    
+                    document.getElementById('uploadSection').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'block';
+                    
+                    renderSelectors();
+                    applyFilters();
+
+                } catch (error) {
+                    console.error(error);
+                    document.getElementById('loadingStatus').textContent = 'Error loading data. Invalid file format.';
                 }
-
-                globalData = allCombinedData;
-                
-                // Hide loading overlays and show dashboard
-                document.getElementById('loadingOverlay').style.display = 'none';
-                document.getElementById('dashboard').style.display = 'block';
-                
-                renderSelectors();
-                applyFilters();
-
-            } catch (error) {
-                console.error(error);
-                document.getElementById('mainSpinner').style.display = 'none';
-                document.getElementById('loadingText').innerHTML = 
-                    `<span style="color:var(--warning)"><b>Error loading data.</b></span><br><br>
-                     <span style="font-size:14px; font-weight:normal; color:var(--text-muted);">
-                     Ensure your Excel file is uploaded to GitHub and named exactly:<br><b>${FILE_NAME}</b>
-                     <br><br>Technical details: ${error.message}
-                     </span>`;
-            }
+            };
+            reader.readAsArrayBuffer(file);
         });
 
         function renderSelectors() {
@@ -322,7 +346,7 @@
                 if (row['Period']) periods.add(row['Period']);
             });
 
-            // 1. Render Overrun Categories Filter (Fixed 5 items)
+            // 1. Render Overrun Categories Filter
             let rHtml = `<div class="filter-btn active" onclick="setFilter('reason', 'All', this)">All Categories</div>`;
             DELAY_CATEGORIES.forEach(r => {
                 rHtml += `<div class="filter-btn" onclick="setFilter('reason', '${r}', this)">${r}</div>`;
@@ -370,8 +394,6 @@
                 
                 const matchZone = currentZone === "All" || row['Zone'] === currentZone;
                 const matchPeriod = currentPeriod === "All" || row['Period'] === currentPeriod;
-                
-                // Match if 'All' is selected OR the reason exists in the project's category array
                 const matchReason = currentReason === "All" || row['Categories'].includes(currentReason);
 
                 return matchSearch && matchZone && matchPeriod && matchReason;
@@ -403,7 +425,6 @@
                     projHtml = projHtml.replace(regex, '<mark>$1</mark>');
                 }
 
-                // Render categories as tags
                 let catHtml = row['Categories'].map(c => `<span class="category-tag">${c}</span>`).join('');
 
                 tr.innerHTML = `
@@ -420,7 +441,6 @@
             tbody.appendChild(fragment);
         }
 
-        // Modal Functions
         function openModal(idx) {
             const row = currentViewData[idx];
             document.getElementById('modalTitle').textContent = row['Project Name'];
@@ -455,17 +475,27 @@
                     </div>
                 </div>
                 
-                <div class="modal-reason-box">
-                    <div class="modal-reason-title">Delay Categories:</div>
-                    <div style="margin-bottom: 15px;">${catHtml}</div>
-                    
-                    <div class="modal-label" style="margin-bottom: 8px; color: var(--text-main);">Time Overrun Reason:</div>
-                    <div class="modal-long-text">${row['Detailed Reason']}</div>
+                <div class="modal-section-title" style="color: var(--warning);">
+                    ⚠️ Time Overrun Categories
                 </div>
+                <div style="margin-bottom: 25px;">${catHtml}</div>
+                
+                <div class="modal-section-title" style="color: var(--warning);">
+                    Detailed Reasons for Time Overrun
+                </div>
+                <div class="modal-long-text time-border">${row['Time Reason']}</div>
+
+                <div class="modal-section-title" style="color: var(--danger);">
+                    Detailed Reasons for Cost Overrun
+                </div>
+                <div class="modal-long-text cost-border" style="margin-bottom: 0;">${row['Cost Reason']}</div>
             `;
             
             document.getElementById('modalBody').innerHTML = detailsHtml;
             document.getElementById('projectModal').style.display = 'block';
+            
+            // Reset modal scroll position to top
+            document.getElementById('modalBody').scrollTop = 0;
         }
 
         function closeModal() { document.getElementById('projectModal').style.display = 'none'; }
