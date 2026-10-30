@@ -1,0 +1,448 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2575.7">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1">&lt;!DOCTYPE html&gt;</p>
+<p class="p1">&lt;html lang="en"&gt;</p>
+<p class="p1">&lt;head&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;title&gt;Project Delays &amp; Overruns Dashboard&lt;/title&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- Include SheetJS to parse Excel files in the browser --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"&gt;&lt;/script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;style&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f7f6; color: #333; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.container { background-color: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>th, td { border: 1px solid #e0e0e0; padding: 12px; text-align: left; vertical-align: top; word-wrap: break-word; font-size: 14px; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>th { background-color: #2c3e50; color: white; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>tr:nth-child(even) { background-color: #f8f9fa; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>tr.selected { background-color: #e8f4f8; }</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>.upload-section { background: #eef2f5; padding: 20px; border-radius: 8px; border: 1px dashed #d1d8dd; margin-bottom: 25px; display: flex; align-items: center; gap: 20px; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>input[type="text"], input[type="file"] { padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 6px; outline: none; transition: border-color 0.3s; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>input[type="text"]:focus { border-color: #3498db; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>/* Graphic Zone Selector (Grid) */</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.selector-title { font-size: 15px; font-weight: bold; margin-bottom: 10px; color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 5px;}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.zone-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 10px; margin-bottom: 25px; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.zone-btn { background-color: #ffffff; border: 2px solid #d1d8dd; color: #555; padding: 12px 5px; text-align: center; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.zone-btn:hover { border-color: #3498db; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(52, 152, 219, 0.15); color: #3498db; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.zone-btn.active { background-color: #3498db; color: #ffffff; border-color: #2980b9; box-shadow: inset 0 2px 4px rgba(0,0,0,0.15); transform: none; }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>/* Alternate Classification Selector (Pills) */</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.class-pills { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 25px; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.class-pill { background-color: #ffffff; border: 2px solid #d1d8dd; color: #555; padding: 8px 18px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.class-pill:hover { border-color: #e67e22; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(230, 126, 34, 0.15); color: #e67e22;}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.class-pill.active { background-color: #e67e22; color: #ffffff; border-color: #d35400; box-shadow: inset 0 2px 4px rgba(0,0,0,0.15); transform: none; }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>.search-container { width: 100%; max-width: 500px; margin-bottom: 15px; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.search-container input { width: 100%; box-sizing: border-box; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>mark { background-color: #ffeb3b; color: #000; padding: 0 3px; border-radius: 3px; font-weight: bold; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.stats { margin-top: 10px; font-size: 15px; font-weight: bold; color: #2c3e50; }</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>/* Checkbox &amp; Bulk Actions Styles */</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.custom-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: #3498db; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.bulk-actions { margin-top: 15px; margin-bottom: 15px; display: none; padding: 15px 20px; background: #eef2f5; border-radius: 8px; border: 1px solid #d1d8dd; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.bulk-copy-btn { background: #27ae60; color: white; border: none; border-radius: 6px; padding: 10px 20px; font-size: 15px; font-weight: bold; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.bulk-copy-btn:hover { background: #219d53; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3); }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>.copy-btn { background: #f0f4f8; border: 1px solid #d1d8dd; border-radius: 6px; padding: 6px 10px; cursor: pointer; color: #2c3e50; font-size: 16px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; width: 100%; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.copy-btn:hover { background: #3498db; border-color: #3498db; color: white; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.copy-btn.copied { background: #2ecc71; border-color: #2ecc71; color: white; }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>#dashboard { display: none; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/style&gt;</p>
+<p class="p1">&lt;/head&gt;</p>
+<p class="p1">&lt;body&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="container"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;h2 style="margin-top: 0; color: #2c3e50;"&gt;Project Delays &amp; Overruns Dashboard&lt;/h2&gt;</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="upload-section" id="uploadSection"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;label for="fileUpload" style="font-weight: bold; display: block; margin-bottom: 8px;"&gt;Upload Original PMO PPT Excel File:&lt;/label&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;input type="file" id="fileUpload" accept=".xlsx, .xls" /&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div id="loadingStatus" style="font-weight: bold; color: #e67e22;"&gt;Waiting for file...&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div id="dashboard"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="selector-title"&gt;Filter by Railway Zone&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div id="zoneContainer" class="zone-grid"&gt;&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="selector-title"&gt;Filter by Sanction Period&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div id="periodContainer" class="class-pills"&gt;&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="selector-title"&gt;Filter by Time Overrun Reason&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div id="reasonContainer" class="class-pills"&gt;&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="selector-title"&gt;Search Projects&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="search-container"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;input type="text" id="searchBar" placeholder="Type to highlight and filter project names..." onkeyup="applyFilters()" /&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p2"><span class="Apple-converted-space">            </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;!-- Bulk Action Bar --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="bulk-actions" id="bulkActions"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;div&gt;&lt;span id="selectedCount" style="font-weight: bold; color: #2c3e50; font-size: 15px;"&gt;0 items selected&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;button id="bulkCopyBtn" class="bulk-copy-btn" onclick="copySelected()"&gt;📲 Copy Selected to WhatsApp&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="stats" id="recordCount"&gt;Projects found: 0&lt;/div&gt;</p>
+<p class="p2"><span class="Apple-converted-space">            </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div style="max-height: 600px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 10px;"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;table id="reportTable"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;thead&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>&lt;tr&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;th style="width: 4%; text-align: center;" title="Select All"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;input type="checkbox" id="selectAll" class="custom-checkbox" onclick="toggleSelectAll()"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;th style="width: 5%; text-align: center;"&gt;Copy&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;th style="width: 8%;"&gt;Period&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;th style="width: 6%;"&gt;Zone&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;th style="width: 25%;"&gt;Project Name&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;th style="width: 20%;"&gt;Time Overrun Reason&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;th style="width: 8%;"&gt;Sanc. Year&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;th style="width: 8%;"&gt;Length (Km)&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;th style="width: 8%;"&gt;Orig. Cost&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;th style="width: 8%;"&gt;Antic. Cost&lt;/th&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>&lt;/tr&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/thead&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;tbody id="tableBody"&gt;&lt;/tbody&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;/table&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>let globalData = [];</p>
+<p class="p1"><span class="Apple-converted-space">        </span>let currentZone = "All";</p>
+<p class="p1"><span class="Apple-converted-space">        </span>let currentPeriod = "All";</p>
+<p class="p1"><span class="Apple-converted-space">        </span>let currentReason = "All";</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// Helper function to extract data from a row regardless of exact header capitalization/spacing</p>
+<p class="p1"><span class="Apple-converted-space">        </span>function getCol(rowObj, partialName) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const key = Object.keys(rowObj).find(k =&gt; k.toLowerCase().includes(partialName.toLowerCase()));</p>
+<p class="p1"><span class="Apple-converted-space">            </span>return key ? rowObj[key] : "";</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// Format dates safely</p>
+<p class="p1"><span class="Apple-converted-space">        </span>function formatVal(v) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>if (v instanceof Date) return v.getFullYear().toString();</p>
+<p class="p1"><span class="Apple-converted-space">            </span>return (v || "").toString().trim();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>document.getElementById('fileUpload').addEventListener('change', function(e) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const file = e.target.files[0];</p>
+<p class="p1"><span class="Apple-converted-space">            </span>if (!file) return;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('loadingStatus').textContent = 'Extracting and cleaning data from sheets...';</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>const reader = new FileReader();</p>
+<p class="p1"><span class="Apple-converted-space">            </span>reader.onload = function(event) {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>try {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>const data = new Uint8Array(event.target.result);</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>const workbook = XLSX.read(data, {type: 'array', cellDates: true});</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>globalData = [];</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                    </span>// Loop through all sheets and extract specific Active sheets</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>workbook.SheetNames.forEach(sheetName =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>let period = "";</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>const lowerName = sheetName.toLowerCase();</p>
+<p class="p2"><span class="Apple-converted-space">                        </span></p>
+<p class="p1"><span class="Apple-converted-space">                        </span>if (lowerName.includes("before 2014")) period = "Before 2014";</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>else if (lowerName.includes("14-19")) period = "2014-19";</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>else if (lowerName.includes("19-24")) period = "2019-24";</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>else return; // Skip non-relevant sheets</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                        </span>const worksheet = workbook.Sheets[sheetName];</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>const rawData = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: "", raw: true});</p>
+<p class="p2"><span class="Apple-converted-space">                        </span></p>
+<p class="p1"><span class="Apple-converted-space">                        </span>let headerRowIndex = -1;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>let headers = [];</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                        </span>// Find the header row by looking for key PMO PPT columns</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>for (let i = 0; i &lt; rawData.length; i++) {</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>const rowStr = rawData[i].map(v =&gt; (v||"").toString().trim().toLowerCase());</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>if (rowStr.includes("rly") &amp;&amp; rowStr.includes("name of project") &amp;&amp; rowStr.includes("time overrun reason")) {</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>headerRowIndex = i;</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>headers = rawData[i].map(h =&gt; (h||"").toString().trim());</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>break;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>}</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                        </span>if (headerRowIndex !== -1) {</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>for (let i = headerRowIndex + 1; i &lt; rawData.length; i++) {</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>const rowArr = rawData[i];</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>let rowObj = {};</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>for (let j = 0; j &lt; headers.length; j++) {</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>if (headers[j]) rowObj[headers[j]] = rowArr[j];</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                                </span>const zone = getCol(rowObj, 'rly');</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>const reason = getCol(rowObj, 'time overrun reason');</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>const projName = getCol(rowObj, 'name of project');</p>
+<p class="p2"><span class="Apple-converted-space">                                </span></p>
+<p class="p1"><span class="Apple-converted-space">                                </span>if (zone &amp;&amp; reason &amp;&amp; projName) {</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>globalData.push({</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>'Period': period,</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>'Zone': formatVal(zone),</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>'Reason': formatVal(reason),</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>'Project Name': formatVal(projName),</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>'Sanctioned Year': formatVal(getCol(rowObj, 'sanctioned year')),</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>'Length': formatVal(getCol(rowObj, 'length of project')),</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>'Orig Cost': formatVal(getCol(rowObj, 'original sanctioned cost')),</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>'Antic Cost': formatVal(getCol(rowObj, 'anticipated cost'))</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>});</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>}</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>}</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                    </span>if (globalData.length === 0) {</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>alert("Could not find the expected sheets (before 2014, 14-19, 19-24) or columns.");</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>document.getElementById('loadingStatus').textContent = 'No data extracted.';</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>return;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                    </span>document.getElementById('uploadSection').style.display = 'none';</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>document.getElementById('dashboard').style.display = 'block';</p>
+<p class="p2"><span class="Apple-converted-space">                    </span></p>
+<p class="p1"><span class="Apple-converted-space">                    </span>renderSelectors();</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>applyFilters();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                </span>} catch (error) {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>document.getElementById('loadingStatus').textContent = 'Error processing file.';</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>console.error(error);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>}</p>
+<p class="p1"><span class="Apple-converted-space">            </span>};</p>
+<p class="p1"><span class="Apple-converted-space">            </span>reader.readAsArrayBuffer(file);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>function renderSelectors() {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const zones = new Set();</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const periods = new Set();</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const reasons = new Set();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>globalData.forEach(row =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>if (row['Zone']) zones.add(row['Zone']);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>if (row['Period']) periods.add(row['Period']);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>if (row['Reason']) reasons.add(row['Reason']);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>// Build Zone Grid</p>
+<p class="p1"><span class="Apple-converted-space">            </span>let zHtml = `&lt;div class="zone-btn active" onclick="setFilter('zone', 'All', this)"&gt;All&lt;/div&gt;`;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>Array.from(zones).sort().forEach(z =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>zHtml += `&lt;div class="zone-btn" onclick="setFilter('zone', '${z}', this)"&gt;${z}&lt;/div&gt;`;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>});</p>
+<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('zoneContainer').innerHTML = zHtml;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>// Build Period Pills</p>
+<p class="p1"><span class="Apple-converted-space">            </span>let pHtml = `&lt;div class="class-pill active" onclick="setFilter('period', 'All', this)"&gt;All Periods&lt;/div&gt;`;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>Array.from(periods).sort().forEach(p =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>pHtml += `&lt;div class="class-pill" onclick="setFilter('period', '${p}', this)"&gt;${p}&lt;/div&gt;`;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>});</p>
+<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('periodContainer').innerHTML = pHtml;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>// Build Reason Pills</p>
+<p class="p1"><span class="Apple-converted-space">            </span>let rHtml = `&lt;div class="class-pill active" onclick="setFilter('reason', 'All', this)"&gt;All Reasons&lt;/div&gt;`;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>Array.from(reasons).sort().forEach(r =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>rHtml += `&lt;div class="class-pill" onclick="setFilter('reason', '${r}', this)"&gt;${r}&lt;/div&gt;`;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>});</p>
+<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('reasonContainer').innerHTML = rHtml;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>function setFilter(type, val, element) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>if (type === 'zone') {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>currentZone = val;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>document.querySelectorAll('#zoneContainer .zone-btn').forEach(el =&gt; el.classList.remove('active'));</p>
+<p class="p1"><span class="Apple-converted-space">            </span>} else if (type === 'period') {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>currentPeriod = val;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>document.querySelectorAll('#periodContainer .class-pill').forEach(el =&gt; el.classList.remove('active'));</p>
+<p class="p1"><span class="Apple-converted-space">            </span>} else if (type === 'reason') {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>currentReason = val;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>document.querySelectorAll('#reasonContainer .class-pill').forEach(el =&gt; el.classList.remove('active'));</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}</p>
+<p class="p1"><span class="Apple-converted-space">            </span>element.classList.add('active');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>applyFilters();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>function applyFilters() {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('selectAll').checked = false;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>updateBulkUI();</p>
+<p class="p2"><span class="Apple-converted-space">            </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>const searchInput = document.getElementById('searchBar').value.trim();</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const searchText = searchInput.toLowerCase();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>const filteredData = globalData.filter(row =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const projName = row['Project Name'].toLowerCase();</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const matchSearch = searchText === "" || projName.includes(searchText);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const matchZone = currentZone === "All" || row['Zone'] === currentZone;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const matchPeriod = currentPeriod === "All" || row['Period'] === currentPeriod;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const matchReason = currentReason === "All" || row['Reason'] === currentReason;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                </span>return matchSearch &amp;&amp; matchZone &amp;&amp; matchPeriod &amp;&amp; matchReason;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>renderTable(filteredData, searchInput);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>function renderTable(data, searchInput) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const tbody = document.getElementById('tableBody');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('recordCount').textContent = `Showing ${data.length} projects`;</p>
+<p class="p2"><span class="Apple-converted-space">            </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>tbody.innerHTML = "";</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>if (data.length === 0) {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>tbody.innerHTML = '&lt;tr&gt;&lt;td colspan="10" style="text-align: center; padding: 20px;"&gt;No matching projects found.&lt;/td&gt;&lt;/tr&gt;';</p>
+<p class="p1"><span class="Apple-converted-space">                </span>return;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>const fragment = document.createDocumentFragment();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>data.forEach((row, idx) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const tr = document.createElement('tr');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>tr.id = `row-${idx}`;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>let projHtml = row['Project Name'];</p>
+<p class="p2"><span class="Apple-converted-space">                </span></p>
+<p class="p1"><span class="Apple-converted-space">                </span>const shareText = `🚧 *Project Delay Alert*\n\n*Project:* ${row['Project Name']}\n*Zone:* ${row['Zone']} | *Period:* ${row['Period']}\n*Reason:* ${row['Reason']}\n*Sanctioned:* ${row['Sanctioned Year'] || 'N/A'}\n*Cost (Orig/Antic):* ${row['Orig Cost'] || 'N/A'} Cr / ${row['Antic Cost'] || 'N/A'} Cr`;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const escapedShareText = encodeURIComponent(shareText);</p>
+<p class="p2"><span class="Apple-converted-space">                </span></p>
+<p class="p1"><span class="Apple-converted-space">                </span>if (searchInput) {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>const escapedSearchText = searchInput.replace(/[.*+?^${}()|[\]\\]/g, '\\$&amp;');</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>const regex = new RegExp(`(${escapedSearchText})`, "gi");</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>projHtml = projHtml.replace(regex, '&lt;mark&gt;$1&lt;/mark&gt;');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                </span>tr.innerHTML = `</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;td style="text-align: center; vertical-align: middle;"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>&lt;input type="checkbox" class="row-checkbox custom-checkbox" value="${escapedShareText}" onchange="toggleRowSelection(this, 'row-${idx}')"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;td style="text-align: center; vertical-align: middle;"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>&lt;button class="copy-btn" title="Copy for WhatsApp" data-share-text="${escapedShareText}" onclick="copySingle(this)"&gt;📋&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;td&gt;&lt;span style="background: #eef2f5; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;"&gt;${row['Period']}&lt;/span&gt;&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;td style="font-weight: bold; color: #3498db;"&gt;${row['Zone']}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;td&gt;${projHtml}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;td style="font-weight: bold; color: #e67e22;"&gt;${row['Reason']}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;td&gt;${row['Sanctioned Year']}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;td&gt;${row['Length']}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;td&gt;${row['Orig Cost']}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;td&gt;${row['Antic Cost']}&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>`;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>fragment.appendChild(tr);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>});</p>
+<p class="p2"><span class="Apple-converted-space">            </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>tbody.appendChild(fragment);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>updateBulkUI();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// --- Bulk Selection &amp; Copying Logic ---</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>function toggleRowSelection(checkbox, rowId) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const row = document.getElementById(rowId);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>if(checkbox.checked) row.classList.add('selected');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>else row.classList.remove('selected');</p>
+<p class="p2"><span class="Apple-converted-space">            </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>checkSelectAllState();</p>
+<p class="p1"><span class="Apple-converted-space">            </span>updateBulkUI();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>function toggleSelectAll() {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const selectAllCb = document.getElementById('selectAll');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const checkboxes = document.querySelectorAll('.row-checkbox');</p>
+<p class="p2"><span class="Apple-converted-space">            </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>checkboxes.forEach(cb =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>cb.checked = selectAllCb.checked;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const row = cb.closest('tr');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>if(cb.checked) row.classList.add('selected');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>else row.classList.remove('selected');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>});</p>
+<p class="p1"><span class="Apple-converted-space">            </span>updateBulkUI();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>function checkSelectAllState() {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const total = document.querySelectorAll('.row-checkbox').length;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const checked = document.querySelectorAll('.row-checkbox:checked').length;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const selectAllCb = document.getElementById('selectAll');</p>
+<p class="p2"><span class="Apple-converted-space">            </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>if (total === 0) selectAllCb.checked = false;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>else selectAllCb.checked = (total === checked);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>function updateBulkUI() {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const bulkDiv = document.getElementById('bulkActions');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const countSpan = document.getElementById('selectedCount');</p>
+<p class="p2"><span class="Apple-converted-space">            </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>if(checkedBoxes.length &gt; 0) {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>bulkDiv.style.display = 'flex';</p>
+<p class="p1"><span class="Apple-converted-space">                </span>countSpan.textContent = `${checkedBoxes.length} projects selected`;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>} else {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>bulkDiv.style.display = 'none';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>function copySelected() {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const checkboxes = document.querySelectorAll('.row-checkbox:checked');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>if (checkboxes.length === 0) return;</p>
+<p class="p2"><span class="Apple-converted-space">            </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>let combinedText = "🚧 *Project Delays Summary* 🚧\n\n";</p>
+<p class="p1"><span class="Apple-converted-space">            </span>checkboxes.forEach((cb, index) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>// Remove the "Project Delay Alert" header from individual items for bulk copy</p>
+<p class="p1"><span class="Apple-converted-space">                </span>let text = decodeURIComponent(cb.value).replace("🚧 *Project Delay Alert*\n\n", "");</p>
+<p class="p1"><span class="Apple-converted-space">                </span>combinedText += text + "\n";</p>
+<p class="p1"><span class="Apple-converted-space">                </span>if(index &lt; checkboxes.length - 1) {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>combinedText += "\n➖➖➖➖➖➖➖➖➖➖\n\n";</p>
+<p class="p1"><span class="Apple-converted-space">                </span>}</p>
+<p class="p1"><span class="Apple-converted-space">            </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>navigator.clipboard.writeText(combinedText).then(() =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const btn = document.getElementById('bulkCopyBtn');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const originalText = btn.innerHTML;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>btn.innerHTML = '✅ Copied to Clipboard!';</p>
+<p class="p1"><span class="Apple-converted-space">                </span>btn.classList.add('copied');</p>
+<p class="p2"><span class="Apple-converted-space">                </span></p>
+<p class="p1"><span class="Apple-converted-space">                </span>document.getElementById('selectAll').checked = false;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>toggleSelectAll();</p>
+<p class="p2"><span class="Apple-converted-space">                </span></p>
+<p class="p1"><span class="Apple-converted-space">                </span>setTimeout(() =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>btn.innerHTML = originalText;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>btn.classList.remove('copied');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>}, 2500);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}).catch(err =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>console.error('Failed to copy text: ', err);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>alert("Failed to copy.");</p>
+<p class="p1"><span class="Apple-converted-space">            </span>});</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>function copySingle(btn) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const textToCopy = decodeURIComponent(btn.getAttribute('data-share-text'));</p>
+<p class="p1"><span class="Apple-converted-space">            </span>navigator.clipboard.writeText(textToCopy).then(() =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const originalHTML = btn.innerHTML;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>btn.innerHTML = '✅';</p>
+<p class="p1"><span class="Apple-converted-space">                </span>btn.classList.add('copied');</p>
+<p class="p2"><span class="Apple-converted-space">                </span></p>
+<p class="p1"><span class="Apple-converted-space">                </span>setTimeout(() =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>btn.innerHTML = originalHTML;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>btn.classList.remove('copied');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>}, 2000);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}).catch(err =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>console.error('Failed to copy text: ', err);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>alert("Failed to copy.");</p>
+<p class="p1"><span class="Apple-converted-space">            </span>});</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/script&gt;</p>
+<p class="p1">&lt;/body&gt;</p>
+<p class="p1">&lt;/html&gt;</p>
+</body>
+</html>
