@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Project Delays Dashboard</title>
+    <!-- Include SheetJS for Excel parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Include Inter font for a professional look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #1e293b; 
+            --accent: #2563eb; 
+            --accent-hover: #1d4ed8; 
+            --bg-color: #f8fafc; 
+            --card-bg: #ffffff;
+            --text-main: #334155; 
+            --text-muted: #64748b; 
+            --border-color: #e2e8f0; 
+            --success: #16a34a; 
+            --warning: #ea580c; 
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 30px; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+        }
+
+        .container { 
+            background-color: var(--card-bg); 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05); 
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+
+        h2 { margin: 0; color: var(--primary); font-size: 24px; font-weight: 700; }
+        .stats { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+
+        /* Loading Screen & Fallback */
+        #loadingOverlay {
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 18px;
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .spinner {
+            border: 4px solid rgba(0,0,0,0.1);
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            border-left-color: var(--accent);
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #fallbackUpload {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #fff8f1;
+            border: 1px solid #fed7aa;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        /* Filter Sections */
+        .filter-section { margin-bottom: 25px; }
+        .selector-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 10px; color: var(--text-muted); }
+        
+        .filter-group { display: flex; flex-wrap: wrap; gap: 8px; }
+        .filter-btn { 
+            background-color: var(--bg-color); 
+            border: 1px solid var(--border-color); 
+            color: var(--text-main); 
+            padding: 8px 16px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 13px; 
+            font-weight: 500; 
+            transition: all 0.2s ease; 
+        }
+        .filter-btn:hover { border-color: var(--accent); color: var(--accent); background-color: #eff6ff; }
+        .filter-btn.active { background-color: var(--accent); color: #ffffff; border-color: var(--accent); box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); }
+
+        .search-container input { 
+            width: 100%; 
+            max-width: 400px; 
+            padding: 10px 15px; 
+            font-size: 14px; 
+            border: 1px solid var(--border-color); 
+            border-radius: 6px; 
+            outline: none; 
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.2s;
+        }
+        .search-container input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+
+        /* Table Styles */
+        .table-container { max-height: 600px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th, td { border-bottom: 1px solid var(--border-color); padding: 12px 15px; text-align: left; vertical-align: middle; font-size: 13px; line-height: 1.4; }
+        th { background-color: var(--primary); color: white; position: sticky; top: 0; z-index: 10; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-size: 12px; border-bottom: none;}
+        tr:hover { background-color: #f8fafc; }
+        
+        mark { background-color: #fef08a; color: #000; padding: 0 2px; border-radius: 2px; font-weight: 600; }
+        
+        .project-link { color: var(--accent); font-weight: 600; text-decoration: none; cursor: pointer; transition: color 0.2s; border-bottom: 1px dashed var(--accent); }
+        .project-link:hover { color: var(--accent-hover); border-bottom-style: solid; }
+
+        /* Badges */
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+        .badge-period { background-color: #f1f5f9; color: var(--text-main); border: 1px solid var(--border-color); }
+        .badge-zone { color: var(--accent); font-weight: 700; }
+        .badge-reason { color: var(--warning); font-weight: 600; }
+
+        /* Modal Styles */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+        .modal-content { background-color: #fff; margin: 5% auto; padding: 30px; border-radius: 12px; width: 90%; max-width: 650px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); position: relative; animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes modalFadeIn { from {opacity: 0; transform: translateY(-20px) scale(0.95);} to {opacity: 1; transform: translateY(0) scale(1);} }
+        .close-btn { position: absolute; right: 20px; top: 20px; font-size: 24px; color: var(--text-muted); cursor: pointer; background: none; border: none; padding: 5px; line-height: 1; border-radius: 4px;}
+        .close-btn:hover { color: var(--primary); background-color: #f1f5f9;}
+        .modal-title { font-size: 20px; font-weight: 700; color: var(--primary); margin: 0 0 20px 0; padding-right: 30px; line-height: 1.3; }
+        
+        .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);}
+        .modal-data-group { display: flex; flex-direction: column; gap: 4px; }
+        .modal-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+        .modal-value { font-size: 14px; font-weight: 600; color: var(--primary); }
+        
+        .modal-reason-box { margin-top: 20px; }
+        .modal-reason-title { font-size: 14px; font-weight: 700; color: var(--warning); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .modal-reason-title::before { content: "⚠️"; }
+        .modal-long-text { background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; white-space: pre-wrap; font-size: 13px; color: #475569; line-height: 1.6; max-height: 300px; overflow-y: auto;}
+
+        #dashboard { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div id="loadingOverlay">
+            <div class="spinner" id="mainSpinner"></div>
+            <div id="loadingText">Fetching project data from repository...</div>
+            
+            <!-- Safe Fallback if Auto-Fetch Fails -->
+            <div id="fallbackUpload" style="display: none;">
+                <p style="color: var(--text-main); font-size: 14px; margin-bottom: 10px;"><b>Auto-fetch failed.</b> Please upload the Excel file manually to proceed:</p>
+                <input type="file" id="manualUpload" accept=".xlsx, .xls" style="border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; background: white;"/>
+            </div>
+        </div>
+
+        <div id="dashboard">
+            <div class="header">
+                <h2>Project Delays & Overruns Dashboard</h2>
+                <div class="stats" id="recordCount">Projects found: 0</div>
+            </div>
+
+            <!-- Filter 1: Overrun Category -->
+            <div class="filter-section">
+                <div class="selector-title">1. Select Time Overrun Category</div>
+                <div id="reasonContainer" class="filter-group"></div>
+            </div>
+            
+            <!-- Filter 2: Sanction Period -->
+            <div class="filter-section">
+                <div class="selector-title">2. Select Sanction Period</div>
+                <div id="periodContainer" class="filter-group"></div>
+            </div>
+            
+            <!-- Filter 3: Railway Zone -->
+            <div class="filter-section">
+                <div class="selector-title">3. Select Railway Zone</div>
+                <div id="zoneContainer" class="filter-group"></div>
+            </div>
+
+            <!-- Filter 4: Search Bar -->
+            <div class="filter-section">
+                <div class="selector-title">4. Search Project Name</div>
+                <div class="search-container">
+                    <input type="text" id="searchBar" placeholder="Search projects..." onkeyup="applyFilters()" />
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table id="reportTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">Period</th>
+                            <th style="width: 8%;">Zone</th>
+                            <th style="width: 35%;">Project Name (Click for Details)</th>
+                            <th style="width: 22%;">Delay Category</th>
+                            <th style="width: 12%;">Sanctioned</th>
+                            <th style="width: 13%;">Cost (Cr)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Background -->
+    <div id="projectModal" class="modal" onclick="closeModalOutside(event)">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+            <h3 class="modal-title" id="modalTitle">Project Name</h3>
+            <div id="modalBody">
+                <!-- Details injected here via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let globalData = [];
+        let currentZone = "All";
+        let currentPeriod = "All";
+        let currentReason = "All";
+        
+        // File to fetch from the repository
+        const FILE_NAME = 'Project_Data.xlsx';
+
+        // Core extraction logic reused for both auto-fetch and manual upload
+        function processExcelData(uint8Array) {
+            const workbook = XLSX.read(uint8Array, {type: 'array'});
+            let allCombinedData = [];
+
+            workbook.SheetNames.forEach(sheetName => {
+                let period = "";
+                const lowerName = sheetName.toLowerCase();
+                
+                if(lowerName.includes("before 2014")) period = "Before 2014";
+                else if(lowerName.includes("14-19")) period = "2014-19";
+                else if(lowerName.includes("19-24")) period = "2019-24";
+                else return; 
+
+                const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {defval: ""});
+                
+                rawData.forEach(row => {
+                    const getVal = (searchStr) => {
+                        const key = Object.keys(row).find(k => k.replace(/\s+/g, ' ').toLowerCase().includes(searchStr.toLowerCase()));
+                        return key ? (row[key] || "").toString().trim() : "";
+                    };
+
+                    const reasonCategory = getVal("TIME OVERRUN REASON");
+                    
+                    if(reasonCategory && reasonCategory !== "") {
+                        allCombinedData.push({
+                            'Period': period,
+                            'Zone': getVal("Rly") || getVal("Zone"),
+                            'Project Name': getVal("Name of Project"),
+                            'Category': reasonCategory,
+                            'Detailed Reason': getVal("Reasons for Time overrun") || "No detailed reason provided.",
+                            'Sanctioned Year': getVal("Sanctioned Year"),
+                            'Length (Km)': getVal("Length of project"),
+                            'Original Cost': getVal("Original Sanctioned Cost"),
+                            'Anticipated Cost': getVal("Anticipated Cost")
+                        });
+                    }
+                });
+            });
+
+            if (allCombinedData.length === 0) {
+                throw new Error("No 'TIME OVERRUN REASON' projects found.");
+            }
+
+            globalData = allCombinedData;
+            document.getElementById('loadingOverlay').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            
+            renderSelectors();
+            applyFilters();
+        }
+
+        // Catch unexpected global errors to show the fallback upload
+        window.onerror = function(msg) {
+            document.getElementById('mainSpinner').style.display = 'none';
+            document.getElementById('loadingText').innerHTML = `<span style="color:var(--warning)">Error: File not found or network issue.</span>`;
+            document.getElementById('fallbackUpload').style.display = 'block';
+        };
+
+        // Auto-fetch data on load (with cache buster)
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch(FILE_NAME + '?v=' + new Date().getTime());
+                if (!response.ok) {
+                    throw new Error(`Status: ${response.status}`);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                processExcelData(new Uint8Array(arrayBuffer));
+            } catch (error) {
+                console.error(error);
+                document.getElementById('mainSpinner').style.display = 'none';
+                document.getElementById('loadingText').innerHTML = `<span style="color:var(--warning)">Could not fetch ${FILE_NAME} automatically.</span>`;
+                document.getElementById('fallbackUpload').style.display = 'inline-block';
+            }
+        });
+
+        // Manual Upload Fallback
+        document.getElementById('manualUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('loadingText').textContent = 'Processing uploaded file...';
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    processExcelData(new Uint8Array(event.target.result));
+                } catch (error) {
+                    document.getElementById('loadingText').innerHTML = `<span style="color:var(--warning)">Invalid File Format.</span>`;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function renderSelectors() {
+            const zones = new Set();
+            const periods = new Set();
+            const reasons = new Set();
+
+            globalData.forEach(row => {
+                if (row['Zone']) zones.add(row['Zone']);
+                if (row['Period']) periods.add(row['Period']);
+                if (row['Category']) reasons.add(row['Category']);
+            });
+
+            // 1. Render Reason Filters
+            let rHtml = `<div class="filter-btn active" onclick="setFilter('reason', 'All', this)">All Categories</div>`;
+            Array.from(reasons).sort().forEach(r => {
+                rHtml += `<div class="filter-btn" onclick="setFilter('reason', '${r.replace(/'/g, "\\'")}', this)">${r}</div>`;
+            });
+            document.getElementById('reasonContainer').innerHTML = rHtml;
+            
+            // 2. Render Period Filters
+            let pHtml = `<div class="filter-btn active" onclick="setFilter('period', 'All', this)">All Periods</div>`;
+            const sortedPeriods = Array.from(periods).sort((a,b) => a.localeCompare(b));
+            sortedPeriods.forEach(p => {
+                pHtml += `<div class="filter-btn" onclick="setFilter('period', '${p.replace(/'/g, "\\'")}', this)">${p}</div>`;
+            });
+            document.getElementById('periodContainer').innerHTML = pHtml;
+
+            // 3. Render Zone Filters
+            let zHtml = `<div class="filter-btn active" onclick="setFilter('zone', 'All', this)">All Zones</div>`;
+            Array.from(zones).sort().forEach(z => {
+                zHtml += `<div class="filter-btn" onclick="setFilter('zone', '${z.replace(/'/g, "\\'")}', this)">${z}</div>`;
+            });
+            document.getElementById('zoneContainer').innerHTML = zHtml;
+        }
+
+        function setFilter(type, val, element) {
+            if (type === 'zone') {
+                currentZone = val;
+                document.querySelectorAll('#zoneContainer .filter-btn').forEach(el => el.classList.remove('active'));
+            } else if (type === 'period') {
+                currentPeriod = val;
+                document.querySelectorAll('#periodContainer .filter-btn').forEach(el => el.classList.remove('active'));
+            } else if (type === 'reason') {
+                currentReason = val;
+                document.querySelectorAll('#reasonContainer .filter-btn').forEach(el => el.classList.remove('active'));
+            }
+            element.classList.add('active');
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const searchInput = document.getElementById('searchBar').value.trim();
+            const searchText = searchInput.toLowerCase();
+
+            currentViewData = globalData.filter(row => {
+                const projName = (row['Project Name'] || "").toLowerCase();
+                const matchSearch = searchText === "" || projName.includes(searchText);
+                
+                const matchZone = currentZone === "All" || row['Zone'] === currentZone;
+                const matchPeriod = currentPeriod === "All" || row['Period'] === currentPeriod;
+                const matchReason = currentReason === "All" || row['Category'] === currentReason;
+
+                return matchSearch && matchZone && matchPeriod && matchReason;
+            });
+
+            renderTable(currentViewData,
