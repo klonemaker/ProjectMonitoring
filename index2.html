@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Delays & Overruns Dashboard</title>
+    <!-- Include SheetJS to parse Excel files in the browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f7f6; color: #333; }
+        .container { background-color: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+        th, td { border: 1px solid #e0e0e0; padding: 12px; text-align: left; vertical-align: top; word-wrap: break-word; font-size: 14px; }
+        th { background-color: #2c3e50; color: white; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        tr.selected { background-color: #e8f4f8; }
+        
+        .upload-section { background: #eef2f5; padding: 20px; border-radius: 8px; border: 1px dashed #d1d8dd; margin-bottom: 25px; display: flex; align-items: center; gap: 20px; }
+        input[type="text"], input[type="file"] { padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 6px; outline: none; transition: border-color 0.3s; }
+        input[type="text"]:focus { border-color: #3498db; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
+        
+        /* Graphic Zone Selector (Grid) */
+        .selector-title { font-size: 15px; font-weight: bold; margin-bottom: 10px; color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 5px;}
+        .zone-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 10px; margin-bottom: 25px; }
+        .zone-btn { background-color: #ffffff; border: 2px solid #d1d8dd; color: #555; padding: 12px 5px; text-align: center; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .zone-btn:hover { border-color: #3498db; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(52, 152, 219, 0.15); color: #3498db; }
+        .zone-btn.active { background-color: #3498db; color: #ffffff; border-color: #2980b9; box-shadow: inset 0 2px 4px rgba(0,0,0,0.15); transform: none; }
+
+        /* Alternate Classification Selector (Pills) */
+        .class-pills { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 25px; }
+        .class-pill { background-color: #ffffff; border: 2px solid #d1d8dd; color: #555; padding: 8px 18px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .class-pill:hover { border-color: #e67e22; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(230, 126, 34, 0.15); color: #e67e22;}
+        .class-pill.active { background-color: #e67e22; color: #ffffff; border-color: #d35400; box-shadow: inset 0 2px 4px rgba(0,0,0,0.15); transform: none; }
+
+        .search-container { width: 100%; max-width: 500px; margin-bottom: 15px; }
+        .search-container input { width: 100%; box-sizing: border-box; }
+        mark { background-color: #ffeb3b; color: #000; padding: 0 3px; border-radius: 3px; font-weight: bold; }
+        .stats { margin-top: 10px; font-size: 15px; font-weight: bold; color: #2c3e50; }
+        
+        /* Checkbox & Bulk Actions Styles */
+        .custom-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: #3498db; }
+        .bulk-actions { margin-top: 15px; margin-bottom: 15px; display: none; padding: 15px 20px; background: #eef2f5; border-radius: 8px; border: 1px solid #d1d8dd; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .bulk-copy-btn { background: #27ae60; color: white; border: none; border-radius: 6px; padding: 10px 20px; font-size: 15px; font-weight: bold; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px; }
+        .bulk-copy-btn:hover { background: #219d53; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3); }
+
+        .copy-btn { background: #f0f4f8; border: 1px solid #d1d8dd; border-radius: 6px; padding: 6px 10px; cursor: pointer; color: #2c3e50; font-size: 16px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; width: 100%; }
+        .copy-btn:hover { background: #3498db; border-color: #3498db; color: white; }
+        .copy-btn.copied { background: #2ecc71; border-color: #2ecc71; color: white; }
+
+        #dashboard { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 style="margin-top: 0; color: #2c3e50;">Project Delays & Overruns Dashboard</h2>
+        
+        <div class="upload-section" id="uploadSection">
+            <div>
+                <label for="fileUpload" style="font-weight: bold; display: block; margin-bottom: 8px;">Upload Original PMO PPT Excel File:</label>
+                <input type="file" id="fileUpload" accept=".xlsx, .xls" />
+            </div>
+            <div id="loadingStatus" style="font-weight: bold; color: #e67e22;">Waiting for file...</div>
+        </div>
+
+        <div id="dashboard">
+            <div class="selector-title">Filter by Railway Zone</div>
+            <div id="zoneContainer" class="zone-grid"></div>
+
+            <div class="selector-title">Filter by Sanction Period</div>
+            <div id="periodContainer" class="class-pills"></div>
+
+            <div class="selector-title">Filter by Time Overrun Reason</div>
+            <div id="reasonContainer" class="class-pills"></div>
+
+            <div class="selector-title">Search Projects</div>
+            <div class="search-container">
+                <input type="text" id="searchBar" placeholder="Type to highlight and filter project names..." onkeyup="applyFilters()" />
+            </div>
+            
+            <!-- Bulk Action Bar -->
+            <div class="bulk-actions" id="bulkActions">
+                <div><span id="selectedCount" style="font-weight: bold; color: #2c3e50; font-size: 15px;">0 items selected</span></div>
+                <button id="bulkCopyBtn" class="bulk-copy-btn" onclick="copySelected()">📲 Copy Selected to WhatsApp</button>
+            </div>
+
+            <div class="stats" id="recordCount">Projects found: 0</div>
+            
+            <div style="max-height: 600px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 10px;">
+                <table id="reportTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 4%; text-align: center;" title="Select All">
+                                <input type="checkbox" id="selectAll" class="custom-checkbox" onclick="toggleSelectAll()">
+                            </th>
+                            <th style="width: 5%; text-align: center;">Copy</th>
+                            <th style="width: 8%;">Period</th>
+                            <th style="width: 6%;">Zone</th>
+                            <th style="width: 25%;">Project Name</th>
+                            <th style="width: 20%;">Time Overrun Reason</th>
+                            <th style="width: 8%;">Sanc. Year</th>
+                            <th style="width: 8%;">Length (Km)</th>
+                            <th style="width: 8%;">Orig. Cost</th>
+                            <th style="width: 8%;">Antic. Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let globalData = [];
+        let currentZone = "All";
+        let currentPeriod = "All";
+        let currentReason = "All";
+
+        // Helper function to extract data from a row regardless of exact header capitalization/spacing
+        function getCol(rowObj, partialName) {
+            const key = Object.keys(rowObj).find(k => k.toLowerCase().includes(partialName.toLowerCase()));
+            return key ? rowObj[key] : "";
+        }
+
+        // Format dates safely
+        function formatVal(v) {
+            if (v instanceof Date) return v.getFullYear().toString();
+            return (v || "").toString().trim();
+        }
+
+        document.getElementById('fileUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('loadingStatus').textContent = 'Extracting and cleaning data from sheets...';
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, {type: 'array', cellDates: true});
+                    globalData = [];
+
+                    // Loop through all sheets and extract specific Active sheets
+                    workbook.SheetNames.forEach(sheetName => {
+                        let period = "";
+                        const lowerName = sheetName.toLowerCase();
+                        
+                        if (lowerName.includes("before 2014")) period = "Before 2014";
+                        else if (lowerName.includes("14-19")) period = "2014-19";
+                        else if (lowerName.includes("19-24")) period = "2019-24";
+                        else return; // Skip non-relevant sheets
+
+                        const worksheet = workbook.Sheets[sheetName];
+                        const rawData = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: "", raw: true});
+                        
+                        let headerRowIndex = -1;
+                        let headers = [];
+
+                        // Find the header row by looking for key PMO PPT columns
+                        for (let i = 0; i < rawData.length; i++) {
+                            const rowStr = rawData[i].map(v => (v||"").toString().trim().toLowerCase());
+                            if (rowStr.includes("rly") && rowStr.includes("name of project") && rowStr.includes("time overrun reason")) {
+                                headerRowIndex = i;
+                                headers = rawData[i].map(h => (h||"").toString().trim());
+                                break;
+                            }
+                        }
+
+                        if (headerRowIndex !== -1) {
+                            for (let i = headerRowIndex + 1; i < rawData.length; i++) {
+                                const rowArr = rawData[i];
+                                let rowObj = {};
+                                for (let j = 0; j < headers.length; j++) {
+                                    if (headers[j]) rowObj[headers[j]] = rowArr[j];
+                                }
+
+                                const zone = getCol(rowObj, 'rly');
+                                const reason = getCol(rowObj, 'time overrun reason');
+                                const projName = getCol(rowObj, 'name of project');
+                                
+                                if (zone && reason && projName) {
+                                    globalData.push({
+                                        'Period': period,
+                                        'Zone': formatVal(zone),
+                                        'Reason': formatVal(reason),
+                                        'Project Name': formatVal(projName),
+                                        'Sanctioned Year': formatVal(getCol(rowObj, 'sanctioned year')),
+                                        'Length': formatVal(getCol(rowObj, 'length of project')),
+                                        'Orig Cost': formatVal(getCol(rowObj, 'original sanctioned cost')),
+                                        'Antic Cost': formatVal(getCol(rowObj, 'anticipated cost'))
+                                    });
+                                }
+                            }
+                        }
+                    });
+
+                    if (globalData.length === 0) {
+                        alert("Could not find the expected sheets (before 2014, 14-19, 19-24) or columns.");
+                        document.getElementById('loadingStatus').textContent = 'No data extracted.';
+                        return;
+                    }
+
+                    document.getElementById('uploadSection').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'block';
+                    
+                    renderSelectors();
+                    applyFilters();
+
+                } catch (error) {
+                    document.getElementById('loadingStatus').textContent = 'Error processing file.';
+                    console.error(error);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function renderSelectors() {
+            const zones = new Set();
+            const periods = new Set();
+            const reasons = new Set();
+
+            globalData.forEach(row => {
+                if (row['Zone']) zones.add(row['Zone']);
+                if (row['Period']) periods.add(row['Period']);
+                if (row['Reason']) reasons.add(row['Reason']);
+            });
+
+            // Build Zone Grid
+            let zHtml = `<div class="zone-btn active" onclick="setFilter('zone', 'All', this)">All</div>`;
+            Array.from(zones).sort().forEach(z => {
+                zHtml += `<div class="zone-btn" onclick="setFilter('zone', '${z}', this)">${z}</div>`;
+            });
+            document.getElementById('zoneContainer').innerHTML = zHtml;
+
+            // Build Period Pills
+            let pHtml = `<div class="class-pill active" onclick="setFilter('period', 'All', this)">All Periods</div>`;
+            Array.from(periods).sort().forEach(p => {
+                pHtml += `<div class="class-pill" onclick="setFilter('period', '${p}', this)">${p}</div>`;
+            });
+            document.getElementById('periodContainer').innerHTML = pHtml;
+
+            // Build Reason Pills
+            let rHtml = `<div class="class-pill active" onclick="setFilter('reason', 'All', this)">All Reasons</div>`;
+            Array.from(reasons).sort().forEach(r => {
+                rHtml += `<div class="class-pill" onclick="setFilter('reason', '${r}', this)">${r}</div>`;
+            });
+            document.getElementById('reasonContainer').innerHTML = rHtml;
+        }
+
+        function setFilter(type, val, element) {
+            if (type === 'zone') {
+                currentZone = val;
+                document.querySelectorAll('#zoneContainer .zone-btn').forEach(el => el.classList.remove('active'));
+            } else if (type === 'period') {
+                currentPeriod = val;
+                document.querySelectorAll('#periodContainer .class-pill').forEach(el => el.classList.remove('active'));
+            } else if (type === 'reason') {
+                currentReason = val;
+                document.querySelectorAll('#reasonContainer .class-pill').forEach(el => el.classList.remove('active'));
+            }
+            element.classList.add('active');
+            applyFilters();
+        }
+
+        function applyFilters() {
+            document.getElementById('selectAll').checked = false;
+            updateBulkUI();
+            
+            const searchInput = document.getElementById('searchBar').value.trim();
+            const searchText = searchInput.toLowerCase();
+
+            const filteredData = globalData.filter(row => {
+                const projName = row['Project Name'].toLowerCase();
+                const matchSearch = searchText === "" || projName.includes(searchText);
+                const matchZone = currentZone === "All" || row['Zone'] === currentZone;
+                const matchPeriod = currentPeriod === "All" || row['Period'] === currentPeriod;
+                const matchReason = currentReason === "All" || row['Reason'] === currentReason;
+
+                return matchSearch && matchZone && matchPeriod && matchReason;
+            });
+
+            renderTable(filteredData, searchInput);
+        }
+
+        function renderTable(data, searchInput) {
+            const tbody = document.getElementById('tableBody');
+            document.getElementById('recordCount').textContent = `Showing ${data.length} projects`;
+            
+            tbody.innerHTML = "";
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px;">No matching projects found.</td></tr>';
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+
+            data.forEach((row, idx) => {
+                const tr = document.createElement('tr');
+                tr.id = `row-${idx}`;
+                let projHtml = row['Project Name'];
+                
+                const shareText = `🚧 *Project Delay Alert*\n\n*Project:* ${row['Project Name']}\n*Zone:* ${row['Zone']} | *Period:* ${row['Period']}\n*Reason:* ${row['Reason']}\n*Sanctioned:* ${row['Sanctioned Year'] || 'N/A'}\n*Cost (Orig/Antic):* ${row['Orig Cost'] || 'N/A'} Cr / ${row['Antic Cost'] || 'N/A'} Cr`;
+                const escapedShareText = encodeURIComponent(shareText);
+                
+                if (searchInput) {
+                    const escapedSearchText = searchInput.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`(${escapedSearchText})`, "gi");
+                    projHtml = projHtml.replace(regex, '<mark>$1</mark>');
+                }
+
+                tr.innerHTML = `
+                    <td style="text-align: center; vertical-align: middle;">
+                        <input type="checkbox" class="row-checkbox custom-checkbox" value="${escapedShareText}" onchange="toggleRowSelection(this, 'row-${idx}')">
+                    </td>
+                    <td style="text-align: center; vertical-align: middle;">
+                        <button class="copy-btn" title="Copy for WhatsApp" data-share-text="${escapedShareText}" onclick="copySingle(this)">📋</button>
+                    </td>
+                    <td><span style="background: #eef2f5; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">${row['Period']}</span></td>
+                    <td style="font-weight: bold; color: #3498db;">${row['Zone']}</td>
+                    <td>${projHtml}</td>
+                    <td style="font-weight: bold; color: #e67e22;">${row['Reason']}</td>
+                    <td>${row['Sanctioned Year']}</td>
+                    <td>${row['Length']}</td>
+                    <td>${row['Orig Cost']}</td>
+                    <td>${row['Antic Cost']}</td>
+                `;
+                fragment.appendChild(tr);
+            });
+            
+            tbody.appendChild(fragment);
+            updateBulkUI();
+        }
+
+        // --- Bulk Selection & Copying Logic ---
+        
+        function toggleRowSelection(checkbox, rowId) {
+            const row = document.getElementById(rowId);
+            if(checkbox.checked) row.classList.add('selected');
+            else row.classList.remove('selected');
+            
+            checkSelectAllState();
+            updateBulkUI();
+        }
+
+        function toggleSelectAll() {
+            const selectAllCb = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            
+            checkboxes.forEach(cb => {
+                cb.checked = selectAllCb.checked;
+                const row = cb.closest('tr');
+                if(cb.checked) row.classList.add('selected');
+                else row.classList.remove('selected');
+            });
+            updateBulkUI();
+        }
+
+        function checkSelectAllState() {
+            const total = document.querySelectorAll('.row-checkbox').length;
+            const checked = document.querySelectorAll('.row-checkbox:checked').length;
+            const selectAllCb = document.getElementById('selectAll');
+            
+            if (total === 0) selectAllCb.checked = false;
+            else selectAllCb.checked = (total === checked);
+        }
+
+        function updateBulkUI() {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            const bulkDiv = document.getElementById('bulkActions');
+            const countSpan = document.getElementById('selectedCount');
+            
+            if(checkedBoxes.length > 0) {
+                bulkDiv.style.display = 'flex';
+                countSpan.textContent = `${checkedBoxes.length} projects selected`;
+            } else {
+                bulkDiv.style.display = 'none';
+            }
+        }
+
+        function copySelected() {
+            const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+            if (checkboxes.length === 0) return;
+            
+            let combinedText = "🚧 *Project Delays Summary* 🚧\n\n";
+            checkboxes.forEach((cb, index) => {
+                // Remove the "Project Delay Alert" header from individual items for bulk copy
+                let text = decodeURIComponent(cb.value).replace("🚧 *Project Delay Alert*\n\n", "");
+                combinedText += text + "\n";
+                if(index < checkboxes.length - 1) {
+                    combinedText += "\n➖➖➖➖➖➖➖➖➖➖\n\n";
+                }
+            });
+
+            navigator.clipboard.writeText(combinedText).then(() => {
+                const btn = document.getElementById('bulkCopyBtn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied to Clipboard!';
+                btn.classList.add('copied');
+                
+                document.getElementById('selectAll').checked = false;
+                toggleSelectAll();
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('copied');
+                }, 2500);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                alert("Failed to copy.");
+            });
+        }
+
+        function copySingle(btn) {
+            const textToCopy = decodeURIComponent(btn.getAttribute('data-share-text'));
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '✅';
+                btn.classList.add('copied');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                alert("Failed to copy.");
+            });
+        }
+    </script>
+</body>
+</html>
