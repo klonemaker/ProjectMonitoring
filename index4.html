@@ -266,8 +266,7 @@
                 else if(lowerName.includes("19-24")) period = "2019-24";
                 else return; 
 
-                const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {defval: ""});
-                
+                const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {defval: "", raw: false});
                 rawData.forEach(row => {
                     const getVal = (searchStr) => {
                         // Cast keys to String safely before executing regex replacements
