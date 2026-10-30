@@ -6,7 +6,6 @@
     <title>Executive Project Delays Dashboard</title>
     <!-- Include SheetJS for Excel parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- Include Inter font for a professional look -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -56,7 +55,7 @@
         #loadingOverlay {
             text-align: center;
             padding: 60px 20px;
-            font-size: 18px;
+            font-size: 16px;
             color: var(--accent);
             font-weight: 600;
         }
@@ -125,7 +124,7 @@
         .project-link:hover { color: var(--accent-hover); border-bottom-style: solid; }
 
         /* Badges */
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; display: inline-block;}
         .badge-period { background-color: #f1f5f9; color: var(--text-main); border: 1px solid var(--border-color); }
         .badge-zone { color: var(--accent); font-weight: 700; }
         .badge-reason { color: var(--warning); font-weight: 600; }
@@ -159,9 +158,9 @@
             <div id="loadingText">Fetching project data from repository...</div>
             
             <!-- Safe Fallback if Auto-Fetch Fails -->
-            <div id="fallbackUpload" style="display: none;">
-                <p style="color: var(--text-main); font-size: 14px; margin-bottom: 10px;"><b>Auto-fetch failed.</b> Please upload the Excel file manually to proceed:</p>
-                <input type="file" id="manualUpload" accept=".xlsx, .xls" style="border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; background: white;"/>
+            <div id="fallbackUpload">
+                <p style="color: var(--warning); font-size: 14px; margin-bottom: 10px;" id="fallbackMsg"><b>Auto-fetch taking too long.</b> Please upload the Excel file manually:</p>
+                <input type="file" id="manualUpload" accept=".xlsx, .xls" style="border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; background: white; cursor: pointer;"/>
             </div>
         </div>
 
@@ -179,217 +178,4 @@
             
             <!-- Filter 2: Sanction Period -->
             <div class="filter-section">
-                <div class="selector-title">2. Select Sanction Period</div>
-                <div id="periodContainer" class="filter-group"></div>
-            </div>
-            
-            <!-- Filter 3: Railway Zone -->
-            <div class="filter-section">
-                <div class="selector-title">3. Select Railway Zone</div>
-                <div id="zoneContainer" class="filter-group"></div>
-            </div>
-
-            <!-- Filter 4: Search Bar -->
-            <div class="filter-section">
-                <div class="selector-title">4. Search Project Name</div>
-                <div class="search-container">
-                    <input type="text" id="searchBar" placeholder="Search projects..." onkeyup="applyFilters()" />
-                </div>
-            </div>
-            
-            <div class="table-container">
-                <table id="reportTable">
-                    <thead>
-                        <tr>
-                            <th style="width: 10%;">Period</th>
-                            <th style="width: 8%;">Zone</th>
-                            <th style="width: 35%;">Project Name (Click for Details)</th>
-                            <th style="width: 22%;">Delay Category</th>
-                            <th style="width: 12%;">Sanctioned</th>
-                            <th style="width: 13%;">Cost (Cr)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Background -->
-    <div id="projectModal" class="modal" onclick="closeModalOutside(event)">
-        <div class="modal-content">
-            <button class="close-btn" onclick="closeModal()">&times;</button>
-            <h3 class="modal-title" id="modalTitle">Project Name</h3>
-            <div id="modalBody">
-                <!-- Details injected here via JS -->
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let globalData = [];
-        let currentZone = "All";
-        let currentPeriod = "All";
-        let currentReason = "All";
-        
-        // File to fetch from the repository
-        const FILE_NAME = 'Project_Data.xlsx';
-
-        // Core extraction logic reused for both auto-fetch and manual upload
-        function processExcelData(uint8Array) {
-            const workbook = XLSX.read(uint8Array, {type: 'array'});
-            let allCombinedData = [];
-
-            workbook.SheetNames.forEach(sheetName => {
-                let period = "";
-                const lowerName = sheetName.toLowerCase();
-                
-                if(lowerName.includes("before 2014")) period = "Before 2014";
-                else if(lowerName.includes("14-19")) period = "2014-19";
-                else if(lowerName.includes("19-24")) period = "2019-24";
-                else return; 
-
-                const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {defval: ""});
-                
-                rawData.forEach(row => {
-                    const getVal = (searchStr) => {
-                        const key = Object.keys(row).find(k => k.replace(/\s+/g, ' ').toLowerCase().includes(searchStr.toLowerCase()));
-                        return key ? (row[key] || "").toString().trim() : "";
-                    };
-
-                    const reasonCategory = getVal("TIME OVERRUN REASON");
-                    
-                    if(reasonCategory && reasonCategory !== "") {
-                        allCombinedData.push({
-                            'Period': period,
-                            'Zone': getVal("Rly") || getVal("Zone"),
-                            'Project Name': getVal("Name of Project"),
-                            'Category': reasonCategory,
-                            'Detailed Reason': getVal("Reasons for Time overrun") || "No detailed reason provided.",
-                            'Sanctioned Year': getVal("Sanctioned Year"),
-                            'Length (Km)': getVal("Length of project"),
-                            'Original Cost': getVal("Original Sanctioned Cost"),
-                            'Anticipated Cost': getVal("Anticipated Cost")
-                        });
-                    }
-                });
-            });
-
-            if (allCombinedData.length === 0) {
-                throw new Error("No 'TIME OVERRUN REASON' projects found.");
-            }
-
-            globalData = allCombinedData;
-            document.getElementById('loadingOverlay').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'block';
-            
-            renderSelectors();
-            applyFilters();
-        }
-
-        // Catch unexpected global errors to show the fallback upload
-        window.onerror = function(msg) {
-            document.getElementById('mainSpinner').style.display = 'none';
-            document.getElementById('loadingText').innerHTML = `<span style="color:var(--warning)">Error: File not found or network issue.</span>`;
-            document.getElementById('fallbackUpload').style.display = 'block';
-        };
-
-        // Auto-fetch data on load (with cache buster)
-        window.addEventListener('DOMContentLoaded', async () => {
-            try {
-                const response = await fetch(FILE_NAME + '?v=' + new Date().getTime());
-                if (!response.ok) {
-                    throw new Error(`Status: ${response.status}`);
-                }
-                const arrayBuffer = await response.arrayBuffer();
-                processExcelData(new Uint8Array(arrayBuffer));
-            } catch (error) {
-                console.error(error);
-                document.getElementById('mainSpinner').style.display = 'none';
-                document.getElementById('loadingText').innerHTML = `<span style="color:var(--warning)">Could not fetch ${FILE_NAME} automatically.</span>`;
-                document.getElementById('fallbackUpload').style.display = 'inline-block';
-            }
-        });
-
-        // Manual Upload Fallback
-        document.getElementById('manualUpload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            document.getElementById('loadingText').textContent = 'Processing uploaded file...';
-            
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                try {
-                    processExcelData(new Uint8Array(event.target.result));
-                } catch (error) {
-                    document.getElementById('loadingText').innerHTML = `<span style="color:var(--warning)">Invalid File Format.</span>`;
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        });
-
-        function renderSelectors() {
-            const zones = new Set();
-            const periods = new Set();
-            const reasons = new Set();
-
-            globalData.forEach(row => {
-                if (row['Zone']) zones.add(row['Zone']);
-                if (row['Period']) periods.add(row['Period']);
-                if (row['Category']) reasons.add(row['Category']);
-            });
-
-            // 1. Render Reason Filters
-            let rHtml = `<div class="filter-btn active" onclick="setFilter('reason', 'All', this)">All Categories</div>`;
-            Array.from(reasons).sort().forEach(r => {
-                rHtml += `<div class="filter-btn" onclick="setFilter('reason', '${r.replace(/'/g, "\\'")}', this)">${r}</div>`;
-            });
-            document.getElementById('reasonContainer').innerHTML = rHtml;
-            
-            // 2. Render Period Filters
-            let pHtml = `<div class="filter-btn active" onclick="setFilter('period', 'All', this)">All Periods</div>`;
-            const sortedPeriods = Array.from(periods).sort((a,b) => a.localeCompare(b));
-            sortedPeriods.forEach(p => {
-                pHtml += `<div class="filter-btn" onclick="setFilter('period', '${p.replace(/'/g, "\\'")}', this)">${p}</div>`;
-            });
-            document.getElementById('periodContainer').innerHTML = pHtml;
-
-            // 3. Render Zone Filters
-            let zHtml = `<div class="filter-btn active" onclick="setFilter('zone', 'All', this)">All Zones</div>`;
-            Array.from(zones).sort().forEach(z => {
-                zHtml += `<div class="filter-btn" onclick="setFilter('zone', '${z.replace(/'/g, "\\'")}', this)">${z}</div>`;
-            });
-            document.getElementById('zoneContainer').innerHTML = zHtml;
-        }
-
-        function setFilter(type, val, element) {
-            if (type === 'zone') {
-                currentZone = val;
-                document.querySelectorAll('#zoneContainer .filter-btn').forEach(el => el.classList.remove('active'));
-            } else if (type === 'period') {
-                currentPeriod = val;
-                document.querySelectorAll('#periodContainer .filter-btn').forEach(el => el.classList.remove('active'));
-            } else if (type === 'reason') {
-                currentReason = val;
-                document.querySelectorAll('#reasonContainer .filter-btn').forEach(el => el.classList.remove('active'));
-            }
-            element.classList.add('active');
-            applyFilters();
-        }
-
-        function applyFilters() {
-            const searchInput = document.getElementById('searchBar').value.trim();
-            const searchText = searchInput.toLowerCase();
-
-            currentViewData = globalData.filter(row => {
-                const projName = (row['Project Name'] || "").toLowerCase();
-                const matchSearch = searchText === "" || projName.includes(searchText);
-                
-                const matchZone = currentZone === "All" || row['Zone'] === currentZone;
-                const matchPeriod = currentPeriod === "All" || row['Period'] === currentPeriod;
-                const matchReason = currentReason === "All" || row['Category'] === currentReason;
-
-                return matchSearch && matchZone && matchPeriod && matchReason;
-            });
-
-            renderTable(currentViewData,
+                <div
