@@ -51,7 +51,7 @@
         h2 { margin: 0; color: var(--primary); font-size: 24px; font-weight: 700; }
         .stats { font-size: 14px; font-weight: 600; color: var(--text-muted); }
 
-        /* Loading Screen & Fallback */
+        /* Loading Screen */
         #loadingOverlay {
             text-align: center;
             padding: 60px 20px;
@@ -69,16 +69,6 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        #fallbackUpload {
-            display: none;
-            margin-top: 30px;
-            padding: 20px;
-            background: #fff8f1;
-            border: 1px solid #fed7aa;
-            border-radius: 8px;
-            display: inline-block;
-        }
-
         /* Filter Sections */
         .filter-section { margin-bottom: 25px; }
         .selector-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 10px; color: var(--text-muted); }
@@ -126,8 +116,7 @@
         /* Badges */
         .badge-period { background-color: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; display: inline-block; color: var(--text-main); border: 1px solid var(--border-color); }
         .badge-zone { color: var(--accent); font-weight: 700; }
-        
-        .category-tag { background-color: #fff7ed; border: 1px solid #fed7aa; color: #c2410c; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-block; margin: 2px 0;}
+        .category-tag { background-color: #fff7ed; border: 1px solid #fed7aa; color: #c2410c; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-block; margin: 2px 2px 2px 0;}
 
         /* Modal Styles */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
@@ -155,12 +144,7 @@
         
         <div id="loadingOverlay">
             <div class="spinner" id="mainSpinner"></div>
-            <div id="loadingText">Fetching project data from repository...</div>
-            
-            <div id="fallbackUpload">
-                <p style="color: var(--warning); font-size: 14px; margin-bottom: 10px;" id="fallbackMsg"><b>Auto-fetch taking too long.</b> Please upload the Excel file manually:</p>
-                <input type="file" id="manualUpload" accept=".xlsx, .xls" style="border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; background: white; cursor: pointer;"/>
-            </div>
+            <div id="loadingText">Fetching project data from repository (Project_Delay.xlsx)...</div>
         </div>
 
         <div id="dashboard">
@@ -199,12 +183,11 @@
                 <table id="reportTable">
                     <thead>
                         <tr>
-                            <th style="width: 10%;">Period</th>
+                            <th style="width: 12%;">Period</th>
                             <th style="width: 8%;">Zone</th>
-                            <th style="width: 32%;">Project Name (Click for Details)</th>
+                            <th style="width: 40%;">Project Name (Click for Details)</th>
                             <th style="width: 25%;">Delay Categories</th>
-                            <th style="width: 12%;">Sanctioned</th>
-                            <th style="width: 13%;">Cost (Cr)</th>
+                            <th style="width: 15%;">Sanctioned</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody"></tbody>
@@ -231,9 +214,9 @@
         let currentPeriod = "All";
         let currentReason = "All";
         
-        const FILE_NAME = 'Project_Data1.xlsx';
+        // Ensure this perfectly matches the uploaded file in Github
+        const FILE_NAME = 'Project_Delay.xlsx';
 
-        // Pre-defined exact 5 delay categories
         const DELAY_CATEGORIES = [
             "Forest Clearance & Wildlife",
             "Land Acquisition",
@@ -242,19 +225,242 @@
             "Utility Shifting"
         ];
 
-        let fallbackTimer = setTimeout(() => {
-            if (document.getElementById('loadingOverlay').style.display !== 'none') {
-                document.getElementById('mainSpinner').style.display = 'none';
-                document.getElementById('fallbackUpload').style.display = 'inline-block';
-                document.getElementById('loadingText').style.display = 'none';
-            }
-        }, 3000);
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Add timestamp to force Github to ignore cache
+                const response = await fetch(FILE_NAME + '?v=' + new Date().getTime());
+                if (!response.ok) {
+                    throw new Error(`Status: ${response.status}`);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                
+                if (typeof XLSX === 'undefined') {
+                    throw new Error("Excel reading library blocked by network.");
+                }
 
-        function processExcelData(uint8Array) {
-            if (typeof XLSX === 'undefined') {
+                const workbook = XLSX.read(new Uint8Array(arrayBuffer), {type: 'array'});
+                let allCombinedData = [];
+
+                workbook.SheetNames.forEach(sheetName => {
+                    let period = "";
+                    const lowerName = sheetName.toLowerCase();
+                    
+                    if(lowerName.includes("before 2014")) period = "Before 2014";
+                    else if(lowerName.includes("14-19")) period = "2014-19";
+                    else if(lowerName.includes("19-24")) period = "2019-24";
+                    else return; 
+
+                    const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {defval: "", raw: false});
+                    
+                    rawData.forEach(row => {
+                        const getVal = (searchStr) => {
+                            const key = Object.keys(row).find(k => String(k).replace(/\s+/g, ' ').toLowerCase().includes(searchStr.toLowerCase()));
+                            return key ? (row[key] || "").toString().trim() : "";
+                        };
+
+                        let categories = [];
+                        
+                        // Extracting actual True/False or Values from specific requirement columns
+                        if (getVal("forest clearance") || getVal("wildlife")) categories.push(DELAY_CATEGORIES[0]);
+                        if (getVal("land acquisition")) categories.push(DELAY_CATEGORIES[1]);
+                        if (getVal("phase wise")) categories.push(DELAY_CATEGORIES[2]);
+                        if (getVal("law & order") || getVal("law and order")) categories.push(DELAY_CATEGORIES[3]);
+                        if (getVal("utility shifting")) categories.push(DELAY_CATEGORIES[4]);
+
+                        if(categories.length > 0) {
+                            allCombinedData.push({
+                                'Period': period,
+                                'Zone': getVal("Rly") || getVal("Zone"),
+                                'Project Name': getVal("Name of Project"),
+                                'Categories': categories,
+                                'Detailed Reason': getVal("Reasons for Time overrun") || "No detailed reason provided.",
+                                'Sanctioned Year': getVal("Sanctioned Year"),
+                                'Length (Km)': getVal("Length of project"),
+                                'Original Cost': getVal("Original Sanctioned Cost"),
+                                'Anticipated Cost': getVal("Anticipated Cost")
+                            });
+                        }
+                    });
+                });
+
+                if (allCombinedData.length === 0) {
+                    throw new Error("No projects found with valid delay categories.");
+                }
+
+                globalData = allCombinedData;
+                
+                // Success! Hide loading overlays
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                
+                renderSelectors();
+                applyFilters();
+
+            } catch (error) {
+                console.error(error);
                 document.getElementById('mainSpinner').style.display = 'none';
-                document.getElementById('loadingText').innerHTML = `<span style="color:var(--warning)">Error: Excel reading library was blocked.</span>`;
+                document.getElementById('loadingText').innerHTML = `<span style="color:var(--warning)">Error loading data.</span><br><br><span style="font-size:14px; font-weight:normal;">Ensure the Excel file is named exactly <b>${FILE_NAME}</b> and uploaded to the repository. Note: GitHub is case-sensitive.</span>`;
+            }
+        });
+
+        function renderSelectors() {
+            const zones = new Set();
+            const periods = new Set();
+
+            globalData.forEach(row => {
+                if (row['Zone']) zones.add(row['Zone']);
+                if (row['Period']) periods.add(row['Period']);
+            });
+
+            // 1. Render Overrun Categories Filter (Fixed 5 items)
+            let rHtml = `<div class="filter-btn active" onclick="setFilter('reason', 'All', this)">All Categories</div>`;
+            DELAY_CATEGORIES.forEach(r => {
+                rHtml += `<div class="filter-btn" onclick="setFilter('reason', '${r}', this)">${r}</div>`;
+            });
+            document.getElementById('reasonContainer').innerHTML = rHtml;
+
+            // 2. Render Period Filters
+            let pHtml = `<div class="filter-btn active" onclick="setFilter('period', 'All', this)">All Periods</div>`;
+            const sortedPeriods = Array.from(periods).sort((a,b) => a.localeCompare(b));
+            sortedPeriods.forEach(p => {
+                pHtml += `<div class="filter-btn" onclick="setFilter('period', '${p}', this)">${p}</div>`;
+            });
+            document.getElementById('periodContainer').innerHTML = pHtml;
+            
+            // 3. Render Zone Filters
+            let zHtml = `<div class="filter-btn active" onclick="setFilter('zone', 'All', this)">All Zones</div>`;
+            Array.from(zones).sort().forEach(z => {
+                zHtml += `<div class="filter-btn" onclick="setFilter('zone', '${z}', this)">${z}</div>`;
+            });
+            document.getElementById('zoneContainer').innerHTML = zHtml;
+        }
+
+        function setFilter(type, val, element) {
+            if (type === 'zone') {
+                currentZone = val;
+                document.querySelectorAll('#zoneContainer .filter-btn').forEach(el => el.classList.remove('active'));
+            } else if (type === 'period') {
+                currentPeriod = val;
+                document.querySelectorAll('#periodContainer .filter-btn').forEach(el => el.classList.remove('active'));
+            } else if (type === 'reason') {
+                currentReason = val;
+                document.querySelectorAll('#reasonContainer .filter-btn').forEach(el => el.classList.remove('active'));
+            }
+            element.classList.add('active');
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const searchInput = document.getElementById('searchBar').value.trim();
+            const searchText = searchInput.toLowerCase();
+
+            currentViewData = globalData.filter(row => {
+                const projName = (row['Project Name'] || "").toLowerCase();
+                const matchSearch = searchText === "" || projName.includes(searchText);
+                
+                const matchZone = currentZone === "All" || row['Zone'] === currentZone;
+                const matchPeriod = currentPeriod === "All" || row['Period'] === currentPeriod;
+                
+                // Match if 'All' is selected OR the reason exists in the project's category array
+                const matchReason = currentReason === "All" || row['Categories'].includes(currentReason);
+
+                return matchSearch && matchZone && matchPeriod && matchReason;
+            });
+
+            renderTable(currentViewData, searchInput);
+        }
+
+        function renderTable(data, searchInput) {
+            const tbody = document.getElementById('tableBody');
+            document.getElementById('recordCount').textContent = `Showing ${data.length} projects`;
+            
+            tbody.innerHTML = "";
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">No projects found matching the criteria.</td></tr>';
                 return;
             }
 
-            const workbook = XLSX.
+            const fragment = document.createDocumentFragment();
+
+            data.forEach((row, idx) => {
+                const tr = document.createElement('tr');
+                
+                let projHtml = row['Project Name'];
+                if (searchInput) {
+                    const escapedSearchText = searchInput.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`(${escapedSearchText})`, "gi");
+                    projHtml = projHtml.replace(regex, '<mark>$1</mark>');
+                }
+
+                // Render categories as tags
+                let catHtml = row['Categories'].map(c => `<span class="category-tag">${c}</span>`).join('');
+
+                tr.innerHTML = `
+                    <td><span class="badge-period">${row['Period']}</span></td>
+                    <td class="badge-zone">${row['Zone']}</td>
+                    <td><a class="project-link" onclick="openModal(${idx})">${projHtml}</a></td>
+                    <td>${catHtml}</td>
+                    <td>${row['Sanctioned Year'] || '-'}</td>
+                `;
+                fragment.appendChild(tr);
+            });
+            
+            tbody.appendChild(fragment);
+        }
+
+        // Modal Functions
+        function openModal(idx) {
+            const row = currentViewData[idx];
+            document.getElementById('modalTitle').textContent = row['Project Name'];
+            
+            let catHtml = row['Categories'].map(c => `<span class="category-tag">${c}</span>`).join('');
+
+            const detailsHtml = `
+                <div class="modal-grid">
+                    <div class="modal-data-group">
+                        <span class="modal-label">Zone</span>
+                        <span class="modal-value" style="color: var(--accent);">${row['Zone']}</span>
+                    </div>
+                    <div class="modal-data-group">
+                        <span class="modal-label">Sanction Period</span>
+                        <span class="modal-value">${row['Period']}</span>
+                    </div>
+                    <div class="modal-data-group">
+                        <span class="modal-label">Sanctioned Year</span>
+                        <span class="modal-value">${row['Sanctioned Year'] || 'N/A'}</span>
+                    </div>
+                    <div class="modal-data-group">
+                        <span class="modal-label">Project Length</span>
+                        <span class="modal-value">${row['Length (Km)'] ? row['Length (Km)'] + ' Km' : 'N/A'}</span>
+                    </div>
+                    <div class="modal-data-group">
+                        <span class="modal-label">Original Cost</span>
+                        <span class="modal-value">${row['Original Cost'] ? '₹ ' + row['Original Cost'] + ' Cr' : 'N/A'}</span>
+                    </div>
+                    <div class="modal-data-group">
+                        <span class="modal-label">Anticipated Cost</span>
+                        <span class="modal-value">${row['Anticipated Cost'] ? '₹ ' + row['Anticipated Cost'] + ' Cr' : 'N/A'}</span>
+                    </div>
+                </div>
+                
+                <div class="modal-reason-box">
+                    <div class="modal-reason-title">Delay Categories:</div>
+                    <div style="margin-bottom: 15px;">${catHtml}</div>
+                    
+                    <div class="modal-label" style="margin-bottom: 8px; color: var(--text-main);">Time Overrun Reason:</div>
+                    <div class="modal-long-text">${row['Detailed Reason']}</div>
+                </div>
+            `;
+            
+            document.getElementById('modalBody').innerHTML = detailsHtml;
+            document.getElementById('projectModal').style.display = 'block';
+        }
+
+        function closeModal() { document.getElementById('projectModal').style.display = 'none'; }
+        function closeModalOutside(event) {
+            if (event.target === document.getElementById('projectModal')) closeModal();
+        }
+    </script>
+</body>
+</html>
